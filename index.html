@@ -29,6 +29,9 @@
         .swipe-down-hover {
             @apply transition ease-in-out duration-150 hover:translate-y-2 hover:opacity-80
         }
+        .expand-right-hover {
+            @apply transition ease-in-out
+        }
     </style>
 </head>
 
@@ -37,7 +40,8 @@
         <div class="ui-layer flex flex-col justify-start">
             <div class="h-16 translate-y-0 opacity-50 swipe-down-hover w-full flex flex-col justify-start">
                 <div class="h-12 flex flex-row justify-center">
-                    <div class="w-2/5 h-full px-3 bg-gray-50 bg-opacity-50 rounded-xl shadow-md flex flex-row justify-between items-center z-10">
+                    <div
+                        class="w-2/5 h-full px-3 bg-gray-50 bg-opacity-50 rounded-xl shadow-md flex flex-row justify-between items-center z-10">
                         <div class="flex flex-row gap-1">
                             <button class="topbar-button" id="btn-undo" disabled>
                                 <img class="hover:bg-gray-300 rounded-2xl opacity-50" src="assets/btn-undo.png">
@@ -55,7 +59,8 @@
             <div class="w-32 -translate-x-12 opacity-50 swipe-right-hover flex flex-row justify-start">
                 <div class="w-6"></div>
                 <div class="w-16 h-screen flex flex-col justify-center">
-                    <div id="tool-list" class="h-3/4 bg-gray-50 bg-opacity-50 rounded-xl shadow-md flex flex-col justify-center items-center z-10">
+                    <div id="tool-list"
+                        class="h-3/4 bg-gray-50 bg-opacity-50 rounded-xl shadow-md flex flex-col justify-center items-center z-10">
                         <button class="tools-button">
                             <img class="hover:bg-gray-300 rounded-2xl opacity-50" src="assets/btn-pen.png">
                         </button>
@@ -80,14 +85,37 @@
                     </div>
                 </div>
             </div>
-            <div class="w-[380px] md:w-[440px] h-4/5 flex flex-row justify-end translate-x-60 opacity-50 swipe-left-hover">
+            <div
+                class="w-[380px] md:w-[440px] h-4/5 flex flex-row justify-end translate-x-60 opacity-50 swipe-left-hover">
                 <div class="w-64 md:w-96 h-screen flex flex-col justify-center gap-6 z-10">
-                    <div class="h-2/5 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
+                    <div class="h-1/5 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
+                        <span class="font-bold align-top">Font</span>
+                        <div class="relative inline-block text-left">
+                            <div class="flex flex-row gap-x-2 md:gap-x-3 justify-start items-center">
+                                <span class="font-semibold align-top w-32">Font type</span>
+                                <button type="button"
+                                    class="inline-flex w-full my-2 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm"
+                                    id="font-selector" aria-expanded="true" aria-haspopup="true" onclick="fontSelectorToggler()">
+                                    <div id="font-selector-text">Arial</div>
+                                    <svg class="-mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"
+                                        aria-hidden="true">
+                                        <path fill-rule="evenodd"
+                                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                                            clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="absolute right-2 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg focus:outline-none" id="font-selector-items"
+                                role="menu" aria-orientation="vertical" aria-labelledby="font-selector" tabindex="-1">
+                                <div class="py-1" role="none" id="font-items">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="h-1/6 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
                         <span class="font-bold align-top">Colors</span>
                         <div class="h-16 my-4 flex flex-row gap-1 items-center">
-                            <input id="color-picker" type="color" class="h-14 w-14" />
+                            <input id="color-picker" type="color" class="h-14 w-14 cursor-pointer" />
                             <div id="color-list"
                                 class="grid grid-cols-3 grid-rows-2 md:grid-cols-6 md:grid-rows-1 gap-1">
                             </div>
@@ -96,8 +124,8 @@
                 </div>
             </div>
         </div>
-        <div class="ui-layer w-screen h-screen bg-gray-200 flex justify-center items-center">
-            <canvas id="paintboard" class="flex bg-white cursor-crosshair shadow-xl">
+        <div id="backboard" class="ui-layer w-screen h-screen bg-gray-200 flex justify-center items-center">
+            <canvas id="paintboard" class="flex bg-white shadow-xl">
             </canvas>
         </div>
     </div>
