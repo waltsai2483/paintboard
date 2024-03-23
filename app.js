@@ -26,12 +26,17 @@ let fontSelectorToggle = false
 let fontType = SUPPORTED_FONT[0]
 
 let paintState = 1
-let brushWidth = 10
+let filled = false
+let filledColor = "#444444"
 
-const PainterState = {
-    BRUSH: 0,
+const PaintState = {
+    DRAW: 0,
     ERASE: 1,
-    TEXT: 2
+    TEXT: 2,
+    CIRCLE: 3,
+    LINE: 4,
+    RECT: 5,
+    TRIANGLE: 6
 }
 
 const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice(1).map(n => parseInt(n, 10).toString(16).padStart(2, '0')).join('')}`
@@ -39,12 +44,20 @@ const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice
 function updateCursor() {
     const paintboard = document.getElementById("paintboard")
     switch (paintState) {
-        case PainterState.BRUSH:
-            return paintboard.style.cursor = "url('assets/cursor-pen.png') 0 0,auto"
-        case PainterState.ERASE:
-            return paintboard.style.cursor = "url('assets/cursor-eraser.png') 8 8,auto"
-        case PainterState.TEXT:
-            return paintboard.style.cursor = "url('assets/cursor-text.png') 2 2,auto"
+        case PaintState.DRAW:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-pen.png') 0 0,auto"
+        case PaintState.ERASE:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-eraser.png') 5 5,auto"
+        case PaintState.TEXT:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-text.png') 2 2,auto"
+        case PaintState.CIRCLE:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-shape-circle.png') 5 5,auto"
+        case PaintState.LINE:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-shape-line.png') 5 5,auto"
+        case PaintState.RECT:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-shape-rect.png') 5 5,auto"
+        case PaintState.TRIANGLE:
+            return paintboard.style.cursor = "url('assets/cursor/cursor-shape-triangle.png') 5 5,auto"
     }
 }
 
@@ -125,8 +138,8 @@ function initColorList() {
 
 function changeBrushStat() {
     let context = $("#paintboard")[0].getContext("2d")
-    context.strokeStyle = paintState == PainterState.ERASE ? "#ffffff" : $("#color-picker").val()
-    context.lineWidth = brushWidth
+    context.strokeStyle = paintState == PaintState.ERASE ? "#ffffff" : $("#color-picker").val()
+    context.lineWidth = parseFloat($("#width-input").val())
 }
 
 function clearPage() {
@@ -138,22 +151,48 @@ function redraw() {
     let context = $("#paintboard")[0].getContext("2d")
     clearPage()
     memoStack.forEach((element) => {
-        if (element.type == "line") {
-            context.font = undefined
-            context.fillStyle = undefined
-            context.strokeStyle = element.color
-            context.lineWidth = element.width
-            context.beginPath();
-            context.moveTo(element.points[0].x, element.points[0].y)
-            for (let i = 1; i < element.points.length; i++) {
-                context.lineTo(element.points[i].x, element.points[i].y)
-            }
-            context.stroke();
-        } else if (element.type == "text") {
+        if (element.type == "text") {
             context.font = element.font
             context.fillStyle = element.color
             context.fillText(element.text, element.x, element.y, element.width)
+        } else {
+            context.font = undefined
+            context.fillStyle = element.filledColor
+            context.strokeStyle = element.color
+            context.lineWidth = element.width
+            if (element.type == "line") {
+                context.beginPath();
+                context.moveTo(element.points[0].x, element.points[0].y)
+                for (let i = 1; i < element.points.length; i++) {
+                    context.lineTo(element.points[i].x, element.points[i].y)
+                }
+                context.stroke();
+            } else if (element.type == "circle") {
+                context.beginPath()
+                context.ellipse(0.5 * (element.end.x + element.begin.x), 0.5 * (element.end.y + element.begin.y), Math.abs(element.end.x - element.begin.x) / 2, Math.abs(element.end.y - element.begin.y) / 2, 0, 0, 2 * Math.PI)
+                context.stroke()
+            } else if (element.type == "straight") {
+                context.beginPath()
+                context.moveTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.end.y)
+                context.stroke()
+            } else if (element.type == "triangle") {
+                context.beginPath()
+                context.moveTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.begin.y)
+                context.lineTo(0.5 * (element.end.x + element.begin.x), element.end.y)
+                context.lineTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.begin.y)
+                context.stroke()
+            } else if (element.type == "rect") {
+                context.beginPath()
+                context.rect(element.begin.x, element.begin.y, element.end.x - element.begin.x, element.end.y - element.begin.y)
+                context.stroke()
+            }
+            if (element.filledColor) context.fill()
+            context.fillStyle = undefined
         }
+
     });
 }
 
@@ -166,6 +205,38 @@ function resetTextbox() {
     redraw()
 }
 
+/*
+    "Arial",
+    "Verdana",
+    "Tahoma",
+    "Trebuchet MS",
+    "Times New Roman",
+    "Georgia",
+    "Comic Sans MS",
+    "Courier"
+*/
+
+function getFontOffset(type) {
+    switch (type) {
+        case "Arial":
+            return 0.8458
+        case "Verdana":
+            return 0.8975
+        case "Tahoma":
+            return 0.89
+        case "Trebuchet MS":
+            return 0.857
+        case "Times New Roman":
+            return 0.8355
+        case "Georgia":
+            return 0.8485
+        case "Comic Sans MS":
+            return 0.905
+        default:
+            return 0.763
+    }
+}
+
 function addInputBox(x, y, w, h, dragStart, dragEnd) {
     var input = document.createElement('input');
     input.type = 'text';
@@ -175,10 +246,10 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
     input.setAttribute("endX", dragEnd.x)
     input.setAttribute("endY", dragEnd.y)
     input.style.position = 'fixed';
-    input.style.left = (x - 4) + 'px';
-    input.style.top = (y - 4) + 'px';
-    input.style.width = w + 8 + 'px';
-    input.style.height = h + 8 + 'px';
+    input.style.left = (x) + 'px';
+    input.style.top = (y) + 'px';
+    input.style.width = w + 'px';
+    input.style.height = h + 'px';
     input.style.fontSize = `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px`
     input.style.fontFamily = $("#font-selector-text").text()
     input.style.color = $("#color-picker").val()
@@ -189,8 +260,8 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
             const dragEnd = { x: $("#textInputEmbeded")[0].getAttribute("endX"), y: $("#textInputEmbeded")[0].getAttribute("endY") }
             memoStack.push({
                 type: "text",
-                x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x))-4,
-                y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * 0.84,
+                x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
+                y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()),
                 font: `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px ${$("#font-selector-text").text()}`,
                 color: $("#textInputEmbeded").css("color"),
                 text: $("#textInputEmbeded").val(),
@@ -217,6 +288,27 @@ function fontSelectorToggler() {
     }
 }
 
+function repickFillColor() {
+    filledColor = $("#filled-color-picker").val()
+}
+
+function fillSelectorToggler() {
+    filled = !filled
+    if (filled) {
+        $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
+        $("#fill-selector-menu").append('<span class="align-top w-10 mr-1">with</span>')
+        $("#fill-selector-menu").append(`<input id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer mx-1" value="${filledColor}"/>`)
+        $("#fill-bg-changer").css("background-color", filledColor)
+        $("#filled-color-picker").change(() => {
+            repickFillColor()
+            $("#fill-bg-changer").css("background-color", filledColor)
+        })
+    } else {
+        $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
+        $("#filled-color-picker").remove()
+    }
+}
+
 function initPainter() {
     let context = $("#paintboard")[0].getContext("2d")
     let path
@@ -229,7 +321,7 @@ function initPainter() {
         setMouseCoordinates(event)
         enableUiDetect(false)
         changeBrushStat()
-        if (paintState >= PainterState.TEXT) {
+        if (paintState >= PaintState.TEXT) {
             isDragging = true
             dragStart = { x: mouseX, y: mouseY }
             clientDragStart = { x: event.clientX, y: event.clientY }
@@ -253,9 +345,37 @@ function initPainter() {
         if (isDragging) {
             clearPage()
             redraw()
-            context.lineWidth = 2;
+            context.lineWidth = (paintState === PaintState.RECT) ? 4 : 2;
             context.strokeStyle = '#9999fa';
-            context.strokeRect(dragStart.x, dragStart.y, mouseX - dragStart.x, mouseY - dragStart.y)
+            if (paintState !== PaintState.LINE) {
+                context.beginPath()
+                context.rect(dragStart.x, dragStart.y, mouseX - dragStart.x, mouseY - dragStart.y)
+                context.stroke()
+                context.closePath()
+            }
+            context.beginPath()
+            context.fillStyle = "#9999fa"
+            context.font = "16px Arial"
+            context.fillText(`${Math.abs(mouseX - dragStart.x)}x${Math.abs(mouseY - dragStart.y)}`, dragStart.x + 8, dragStart.y - 8)
+            context.fillStyle = undefined
+            context.lineWidth = 4;
+            if (paintState === PaintState.CIRCLE) {
+                context.beginPath()
+                context.ellipse(0.5 * (mouseX + dragStart.x), 0.5 * (mouseY + dragStart.y), Math.abs(mouseX - dragStart.x) / 2, Math.abs(mouseY - dragStart.y) / 2, 0, 0, 2 * Math.PI)
+                context.stroke()
+            } else if (paintState === PaintState.LINE) {
+                context.beginPath()
+                context.moveTo(dragStart.x, dragStart.y)
+                context.lineTo(mouseX, mouseY)
+                context.stroke()
+            } else if (paintState === PaintState.TRIANGLE) {
+                context.beginPath()
+                context.moveTo(dragStart.x, dragStart.y)
+                context.lineTo(mouseX, dragStart.y)
+                context.lineTo(0.5 * (mouseX + dragStart.x), mouseY)
+                context.lineTo(dragStart.x, dragStart.y)
+                context.stroke()
+            }
         } else if (isDrawing) {
             context.lineTo(mouseX, mouseY)
             context.stroke()
@@ -268,22 +388,49 @@ function initPainter() {
         if (isDragging) {
             isDragging = false
             dragEnd = { x: mouseX, y: mouseY }
-            if (paintState == PainterState.TEXT) {
+            if (paintState == PaintState.TEXT) {
                 addInputBox(Math.min(clientDragStart.x, event.clientX), Math.min(clientDragStart.y, event.clientY), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
-                /*
-                const text = prompt("Input text: ", "Hello world!")
-                memoStack.push({
-                    type: "text",
-                    x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
-                    y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) - 36,
-                    font: `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px Calibri`,
-                    color: $("#color-picker").val(),
-                    text: text,
-                    width: Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x))
-                })
-                resetTextbox()
-                */
+                return
             }
+            if (paintState === PaintState.CIRCLE) {
+                memoStack.push({
+                    type: "circle",
+                    begin: dragStart,
+                    end: dragEnd,
+                    color: $("#color-picker").val(),
+                    filledColor: filled ? filledColor : undefined,
+                    width: parseFloat($("#width-input").val())
+                })
+            } else if (paintState === PaintState.LINE) {
+                memoStack.push({
+                    type: "straight",
+                    begin: dragStart,
+                    end: dragEnd,
+                    color: $("#color-picker").val(),
+                    width: parseFloat($("#width-input").val())
+                })
+            } else if (paintState === PaintState.TRIANGLE) {
+                memoStack.push({
+                    type: "triangle",
+                    begin: dragStart,
+                    end: dragEnd,
+                    color: $("#color-picker").val(),
+                    filledColor: filled ? filledColor : undefined,
+                    width: parseFloat($("#width-input").val())
+                })
+            } else if (paintState === PaintState.RECT) {
+                memoStack.push({
+                    type: "rect",
+                    begin: dragStart,
+                    end: dragEnd,
+                    color: $("#color-picker").val(),
+                    filledColor: filled ? filledColor : undefined,
+                    width: parseFloat($("#width-input").val())
+                })
+            }
+            dropStack = []
+            redraw()
+            enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
         } if (isDrawing) {
             isDrawing = false
             memoStack.push(path)
