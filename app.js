@@ -20,7 +20,7 @@ let mouseX = 0, mouseY = 0
 let isDrawing = false
 
 let isDragging = false
-let clientDragStart = undefined, dragStart = undefined, dragEnd = undefined
+let clientDragStart = undefined, cliendDragEnd = undefined, dragStart = undefined, dragEnd = undefined
 
 let fontSelectorToggle = false
 let fontType = SUPPORTED_FONT[0]
@@ -90,12 +90,23 @@ function repickColor(index) {
     }
 }
 
-function setMouseCoordinates(event) {
+function getMouseCoordinates(event) {
     const boundings = document.getElementById("paintboard").getBoundingClientRect()
-    mouseX = event.clientX - boundings.left
-    mouseY = event.clientY - boundings.top
-    mouseX *= document.getElementById("paintboard").width / boundings.width
-    mouseY *= document.getElementById("paintboard").height / boundings.height
+    let x, y
+    x = event.clientX - boundings.left
+    y = event.clientY - boundings.top
+    x *= document.getElementById("paintboard").width / boundings.width
+    y *= document.getElementById("paintboard").height / boundings.height
+    return {x: x, y: y}
+}
+
+function setMouseCoordinates(event) {
+    const pos = getMouseCoordinates(event)
+    if (!(pos.x < 0 || pos.y < 0 || pos.x > currentWidth || pos.y > currentHeight)) {
+        mouseX = pos.x
+        mouseY = pos.y
+        clientDragEnd = {x: event.clientX, y: event.clientY}
+    }
 }
 
 function enableUiDetect(enable) {
@@ -382,14 +393,15 @@ function initPainter() {
             path.points.push({ x: mouseX, y: mouseY })
         }
     })
-    $("#paintboard").mouseup((event) => {
+
+    $("body").mouseup((event) => {
         setMouseCoordinates(event)
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
             dragEnd = { x: mouseX, y: mouseY }
             if (paintState == PaintState.TEXT) {
-                addInputBox(Math.min(clientDragStart.x, event.clientX), Math.min(clientDragStart.y, event.clientY), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
+                addInputBox(Math.min(clientDragStart.x, clientDragEnd.x), Math.min(clientDragStart.y, clientDragEnd.y), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
                 return
             }
             if (paintState === PaintState.CIRCLE) {
