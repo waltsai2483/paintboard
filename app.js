@@ -9,13 +9,18 @@ const SUPPORTED_FONT = [
     "Comic Sans MS",
     "Courier"
 ]
+const TEXT_ALIGN = [
+    "left", "center", "right"
+]
+const MAX_PAINTBOARD_WIDTH = 1080
+const MAX_PAINTBOARD_HEIGHT = 720
 
 let recentColors = []
 let memoStack = []
 let dropStack = []
 
-let currentWidth = 1080
-let currentHeight = 720
+let currentWidth = MAX_PAINTBOARD_WIDTH
+let currentHeight = MAX_PAINTBOARD_HEIGHT
 let mouseX = 0, mouseY = 0
 let isDrawing = false
 
@@ -24,10 +29,17 @@ let clientDragStart = undefined, cliendDragEnd = undefined, dragStart = undefine
 
 let fontSelectorToggle = false
 let fontType = SUPPORTED_FONT[0]
+let textAlign = "left"
+
+let canvaMultiplier = 1
 
 let paintState = 1
 let filled = false
 let filledColor = "#444444"
+let backgroundColor = undefined
+
+let filename = "art"
+let loadedImg = undefined
 
 const PaintState = {
     DRAW: 0,
@@ -59,6 +71,12 @@ function updateCursor() {
         case PaintState.TRIANGLE:
             return paintboard.style.cursor = "url('assets/cursor/cursor-shape-triangle.png') 5 5,auto"
     }
+}
+
+function setCanvaSize(width, height) {
+    let context = $("#paintboard")[0].getContext("2d")
+    context.canvas.width = currentWidth = width
+    context.canvas.height = currentHeight = height
 }
 
 function setPaintState(value) {
@@ -97,7 +115,7 @@ function getMouseCoordinates(event) {
     y = event.clientY - boundings.top
     x *= document.getElementById("paintboard").width / boundings.width
     y *= document.getElementById("paintboard").height / boundings.height
-    return {x: x, y: y}
+    return { x: x, y: y }
 }
 
 function setMouseCoordinates(event) {
@@ -105,7 +123,7 @@ function setMouseCoordinates(event) {
     if (!(pos.x < 0 || pos.y < 0 || pos.x > currentWidth || pos.y > currentHeight)) {
         mouseX = pos.x
         mouseY = pos.y
-        clientDragEnd = {x: event.clientX, y: event.clientY}
+        clientDragEnd = { x: event.clientX, y: event.clientY }
     }
 }
 
@@ -151,6 +169,7 @@ function changeBrushStat() {
     let context = $("#paintboard")[0].getContext("2d")
     context.strokeStyle = paintState == PaintState.ERASE ? "#ffffff" : $("#color-picker").val()
     context.lineWidth = parseFloat($("#width-input").val())
+    context.globalCompositeOperation = paintState == PaintState.ERASE ? "destination-out" : "source-over";
 }
 
 function clearPage() {
@@ -158,19 +177,48 @@ function clearPage() {
     context.clearRect(0, 0, currentWidth, currentHeight)
 }
 
+function renew() {
+    enableBgSetButton(true)
+    enableUndoRedo(false, false)
+    resetTextbox()
+    rename("art")
+    memoStack = []
+    dropStack = []
+    loadedImg = undefined
+    backgroundColor = undefined
+    $("#paintboard").css("background-color", "#ffffff")
+    setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
+    clearPage()
+}
+
 function redraw() {
     let context = $("#paintboard")[0].getContext("2d")
-    clearPage()
+    if (backgroundColor) {
+        context.fillStyle = backgroundColor
+        context.fillRect(0, 0, currentWidth, currentHeight)
+        context.fillStyle = undefined
+    }
+    if (loadedImg) {
+        context.drawImage(loadedImg, 0, 0, currentWidth, currentHeight)
+    }
     memoStack.forEach((element) => {
         if (element.type == "text") {
             context.font = element.font
             context.fillStyle = element.color
-            context.fillText(element.text, element.x, element.y, element.width)
+            context.textAlign = element.align
+            let offset = 0
+            if (element.align === "center") {
+                offset = element.width / 2
+            } else if (element.align === "right") {
+                offset = element.width
+            }
+            context.fillText(element.text, element.x + offset, element.y, element.width)
         } else {
             context.font = undefined
             context.fillStyle = element.filledColor
             context.strokeStyle = element.color
-            context.lineWidth = element.width
+            context.lineWidth = element.filledColor ? element.width * 2 : element.width
+            context.globalCompositeOperation = element.eraseMode ? "destination-out" : "source-over"
             if (element.type == "line") {
                 context.beginPath();
                 context.moveTo(element.points[0].x, element.points[0].y)
@@ -202,6 +250,7 @@ function redraw() {
             }
             if (element.filledColor) context.fill()
             context.fillStyle = undefined
+            context.globalCompositeOperation = "source-over"
         }
 
     });
@@ -230,7 +279,7 @@ function resetTextbox() {
 function getFontOffset(type) {
     switch (type) {
         case "Arial":
-            return 0.8458
+            return 0.8465
         case "Verdana":
             return 0.8975
         case "Tahoma":
@@ -248,6 +297,17 @@ function getFontOffset(type) {
     }
 }
 
+function setTextAlign(align) {
+    textAlign = align
+    TEXT_ALIGN.map((val) => {
+        if (textAlign === val) {
+            $(`#align-${val}-option`).addClass("bg-gray-300").removeClass("hover:bg-gray-200")
+        } else {
+            $(`#align-${val}-option`).removeClass("bg-gray-300").addClass("hover:bg-gray-200")
+        }
+    })
+}
+
 function addInputBox(x, y, w, h, dragStart, dragEnd) {
     var input = document.createElement('input');
     input.type = 'text';
@@ -256,12 +316,14 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
     input.setAttribute("startY", dragStart.y)
     input.setAttribute("endX", dragEnd.x)
     input.setAttribute("endY", dragEnd.y)
-    input.style.position = 'fixed';
-    input.style.left = (x) + 'px';
-    input.style.top = (y) + 'px';
-    input.style.width = w + 'px';
-    input.style.height = h + 'px';
-    input.style.fontSize = `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px`
+    input.setAttribute("align", textAlign)
+    input.style.textAlign = textAlign
+    input.style.position = 'fixed'
+    input.style.left = (x) + 'px'
+    input.style.top = (y) + 'px'
+    input.style.width = w / canvaMultiplier + 'px'
+    input.style.height = h / canvaMultiplier+ 'px'
+    input.style.fontSize = `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) / canvaMultiplier}px`
     input.style.fontFamily = $("#font-selector-text").text()
     input.style.color = $("#color-picker").val()
 
@@ -269,6 +331,7 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
         if (event.key === "Enter") {
             const dragStart = { x: $("#textInputEmbeded")[0].getAttribute("startX"), y: $("#textInputEmbeded")[0].getAttribute("startY") }
             const dragEnd = { x: $("#textInputEmbeded")[0].getAttribute("endX"), y: $("#textInputEmbeded")[0].getAttribute("endY") }
+            const align = $("#textInputEmbeded")[0].getAttribute("align")
             memoStack.push({
                 type: "text",
                 x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
@@ -276,7 +339,8 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
                 font: `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px ${$("#font-selector-text").text()}`,
                 color: $("#textInputEmbeded").css("color"),
                 text: $("#textInputEmbeded").val(),
-                width: Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x))
+                width: Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)),
+                align: align
             })
             resetTextbox()
             enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
@@ -307,8 +371,8 @@ function fillSelectorToggler() {
     filled = !filled
     if (filled) {
         $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
-        $("#fill-selector-menu").append('<span class="align-top w-10 mr-1">with</span>')
-        $("#fill-selector-menu").append(`<input id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer mx-1" value="${filledColor}"/>`)
+        $("#fill-selector-menu").append('<span id="filled-color-label" class="align-top w-10">with</span>')
+        $("#fill-selector-menu").append(`<input id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer" value="${filledColor}"/>`)
         $("#fill-bg-changer").css("background-color", filledColor)
         $("#filled-color-picker").change(() => {
             repickFillColor()
@@ -316,6 +380,9 @@ function fillSelectorToggler() {
         })
     } else {
         $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
+        $("#fill-bg-changer").css("background-color", "transparent")
+        $("#filled-color-picker").remove()
+        $("#filled-color-label").remove()
         $("#filled-color-picker").remove()
     }
 }
@@ -342,6 +409,7 @@ function initPainter() {
                 type: "line",
                 width: context.lineWidth,
                 color: context.strokeStyle,
+                eraseMode: paintState == PaintState.ERASE,
                 points: [{
                     x: mouseX,
                     y: mouseY
@@ -349,6 +417,7 @@ function initPainter() {
             }
             context.beginPath()
             context.moveTo(mouseX, mouseY)
+            context.lineCap = 'round';
         }
     })
     $("#paintboard").mousemove((event) => {
@@ -367,7 +436,7 @@ function initPainter() {
             context.beginPath()
             context.fillStyle = "#9999fa"
             context.font = "16px Arial"
-            context.fillText(`${Math.abs(mouseX - dragStart.x)}x${Math.abs(mouseY - dragStart.y)}`, dragStart.x + 8, dragStart.y - 8)
+            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}`, dragStart.x + 8, dragStart.y - 8)
             context.fillStyle = undefined
             context.lineWidth = 4;
             if (paintState === PaintState.CIRCLE) {
@@ -441,6 +510,7 @@ function initPainter() {
                 })
             }
             dropStack = []
+            clearPage()
             redraw()
             enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
         } if (isDrawing) {
@@ -458,11 +528,13 @@ function initMemory() {
     $("#btn-undo").click(() => {
         dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
         enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+        clearPage()
         redraw()
     })
     $("#btn-redo").click(() => {
         memoStack.push(dropStack.splice(dropStack.length - 1, 1)[0])
         enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+        clearPage()
         redraw()
     })
 }
@@ -485,12 +557,80 @@ function initPaintTools() {
     })
 }
 
+function rename(name) {
+    filename = name
+    $("#filename").text(`${filename}.png`)
+}
+
+function downloadURI(uri) {
+    var link = document.createElement("a");
+    link.download = `${filename}.png`;
+    link.href = uri;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    delete link;
+}
+
+function resizeCanva(width, height) {
+    const wMul = width/MAX_PAINTBOARD_WIDTH
+    const hMul = height/MAX_PAINTBOARD_HEIGHT
+    canvaMultiplier = Math.max(wMul, hMul)
+    $("#paintboard").css("width", width / canvaMultiplier).css("height", height / canvaMultiplier)
+}
+
+function uploadProcess(files, filename) {
+    const context = $("#paintboard")[0].getContext("2d")
+    let fr = new FileReader()
+    fr.onload = (event) => {
+        renew()
+        enableBgSetButton(false)
+        let img = new Image()
+        img.src = event.target.result
+        img.onload = function () {
+            setCanvaSize(this.width, this.height)
+            resizeCanva(this.width, this.height)
+            context.drawImage(img, 0, 0, currentWidth, currentHeight)
+        }
+        loadedImg = img
+        rename(filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, ""))
+    }
+    fr.readAsDataURL(files[0])
+}
+
+function downloadProcess() {
+    const context = $("#paintboard")[0].getContext("2d")
+    context.globalCompositeOperation = "source-over"
+    clearPage()
+    redraw()
+    downloadURI(document.getElementById('paintboard').toDataURL("image/png").replace("png", "octet-stream"))
+}
+
+function setBackgroundColor() {
+    backgroundColor = $("#color-picker").val()
+    $("#paintboard").css("background-color", backgroundColor)
+}
+
+function enableBgSetButton(enabled) {
+    if (enabled) {
+        $("#btn-background-color").removeClass("bg-gray-200")
+        $("#btn-background-color").prop('disabled', false)
+    } else {
+        console.log("dawd")
+        $("#btn-background-color").addClass("bg-gray-300")
+        $("#btn-background-color").prop('disabled', 'disabled')
+    }
+}
+
 function onReady() {
     initColorList()
     initPainter()
     initPaintTools()
     initMemory()
     initFont()
+    setTextAlign("left")
+    rename("art")
+    enableBgSetButton(true)
     $("body").bind('mousewheel', function (e) {
         if (e.originalEvent.wheelDelta / 120 > 0) {
             console.log('scrolling up !')
@@ -502,6 +642,13 @@ function onReady() {
     $("#color-picker").change(() => {
         onColorPicked()
         updateColor()
+    })
+    $("#btn-upload").change(() => {
+        if ($("#btn-upload").prop('files')[0]) {
+            uploadProcess($("#btn-upload").prop('files'), $("#btn-upload").val())
+            $("btn-upload").prop('files', "")
+        }
+        $("#btn-upload").val("")
     })
 }
 

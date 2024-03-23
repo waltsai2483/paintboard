@@ -50,6 +50,22 @@
                                 <img class="hover:bg-gray-300 rounded-2xl opacity-50" src="assets/buttons/btn-redo.png">
                             </button>
                         </div>
+                        <div class="flex font-semibold text-md" id="filename"></div>
+                        <div class="flex flex-row gap-1">
+                            <div class="topbar-button" id="btn-renew" onclick="renew()">
+                                <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                    src="assets/buttons/btn-renew.png">
+                            </div>
+                            <label for="btn-upload" class="topbar-button">
+                                <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                    src="assets/buttons/btn-upload.png">
+                            </label>
+                            <input type="file" id="btn-upload" style="display: none;" />
+                            <div class="topbar-button" id="btn-download" onclick="downloadProcess()">
+                                <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                    src="assets/buttons/btn-download.png">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -71,16 +87,20 @@
                             <img class="hover:bg-gray-300 rounded-2xl opacity-40" src="assets/buttons/btn-text.png">
                         </button>
                         <button class="tools-button">
-                            <img class="hover:bg-gray-300 rounded-2xl opacity-40" src="assets/buttons/btn-shape-circle.png">
+                            <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                src="assets/buttons/btn-shape-circle.png">
                         </button>
                         <button class="tools-button">
-                            <img class="hover:bg-gray-300 rounded-2xl opacity-40" src="assets/buttons/btn-shape-line.png">
+                            <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                src="assets/buttons/btn-shape-line.png">
                         </button>
                         <button class="tools-button">
-                            <img class="hover:bg-gray-300 rounded-2xl opacity-40" src="assets/buttons/btn-shape-rect.png">
+                            <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                src="assets/buttons/btn-shape-rect.png">
                         </button>
                         <button class="tools-button">
-                            <img class="hover:bg-gray-300 rounded-2xl opacity-40" src="assets/buttons/btn-shape-triangle.png">
+                            <img class="hover:bg-gray-300 rounded-2xl opacity-40"
+                                src="assets/buttons/btn-shape-triangle.png">
                         </button>
                     </div>
                 </div>
@@ -88,13 +108,13 @@
             <div
                 class="w-[380px] md:w-[440px] h-4/5 flex flex-row justify-end translate-x-60 opacity-50 swipe-left-hover">
                 <div class="w-64 md:w-96 h-screen flex flex-col justify-center gap-6 z-10">
-                    <div class="h-1/6 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
+                    <div class="h-1/5 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
                         <span class="font-bold align-top">Font</span>
-                        <div class="relative inline-block text-left my-4">
+                        <div class="relative inline-block text-left my-3">
                             <div class="flex flex-row gap-x-2 md:gap-x-3 justify-start items-center">
                                 <span class="align-top w-32">Font type</span>
                                 <button type="button"
-                                    class="inline-flex w-full my-2 justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm"
+                                    class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm"
                                     id="font-selector" aria-expanded="true" aria-haspopup="true"
                                     onclick="fontSelectorToggler()">
                                     <div id="font-selector-text">Arial</div>
@@ -113,8 +133,27 @@
                                 </div>
                             </div>
                         </div>
+                        <div id="text-align-selector-menu"
+                            class="flex flex-row gap-x-2 md:gap-x-3 justify-start items-center">
+                            <span class="align-top w-20 mr-2">Text Align</span>
+                            <button id="align-left-option"
+                                class="flex my-1 w-8 h-8 hover:bg-gray-200 rounded-lg select-none items-center justify-center"
+                                onclick="setTextAlign('left')">
+                                <img class="opacity-80" src="assets/buttons/btn-align-start.png">
+                            </button>
+                            <button id="align-center-option"
+                                class="flex my-1 w-8 h-8 hover:bg-gray-200 rounded-lg select-none items-center justify-center"
+                                onclick="setTextAlign('center')">
+                                <img class="opacity-80" src="assets/buttons/btn-align-middle.png">
+                            </button>
+                            <button id="align-right-option"
+                                class="flex my-1 w-8 h-8 hover:bg-gray-200 rounded-lg select-none items-center justify-center"
+                                onclick="setTextAlign('right')">
+                                <img class="opacity-80" src="assets/buttons/btn-align-end.png">
+                            </button>
+                        </div>
                     </div>
-                    <div class="h-1/6 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
+                    <div class="h-1/5 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
                         <span class="font-bold align-top">Colors</span>
                         <div class="h-16 my-4 flex flex-row gap-1 items-center">
                             <input id="color-picker" type="color" class="h-14 w-14 cursor-pointer" />
@@ -122,20 +161,25 @@
                                 class="grid grid-cols-3 grid-rows-2 md:grid-cols-6 md:grid-rows-1 gap-1">
                             </div>
                         </div>
+                        <button id="btn-background-color" type="button"
+                            class="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm select-none"
+                            onclick="setBackgroundColor()"
+                            >Set as background color
+                        </button>
                     </div>
                     <div class="h-1/5 p-6 bg-gray-50 bg-opacity-50 rounded-l-xl shadow-md flex flex-col">
                         <span class="font-bold align-top">Shape</span>
                         <div class="flex flex-row gap-x-2 md:gap-x-3 justify-start items-center mt-4">
                             <span class="align-top w-32">Width</span>
-                            <input id="width-input" type="number" class="w-full px-3 py-2 shadow-sm bg-white" value="1.0"
-                                step="0.5" />
+                            <input id="width-input" type="number" class="w-full px-3 py-2 shadow-sm bg-white rounded-lg"
+                                value="5" step="0.5" />
                             <span class="align-top w-16">px</span>
                         </div>
                         <div id="fill-selector-menu"
                             class="flex flex-row gap-x-2 md:gap-x-3 justify-start items-center mt-4">
-                            <span class="align-top w-16 mr-1">Fill</span>
+                            <span class="align-top w-16 mr-2">Fill</span>
                             <button id="fill-selector"
-                                class="flex rounded-r-2xl my-2 w-12 h-12 hover:bg-gray-300 rounded-2xl select-none items-center justify-center"
+                                class="flex rounded-r-2xl my-2 w-8 h-8 hover:bg-gray-300 rounded-2xl select-none items-center justify-center"
                                 onclick="fillSelectorToggler()">
                                 <div id="fill-bg-changer" class="rounded-2xl w-auto h-auto">
                                     <img class="opacity-80" src="assets/buttons/btn-hollow.png">
