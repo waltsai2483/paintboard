@@ -32,8 +32,9 @@ let fontType = SUPPORTED_FONT[0]
 let textAlign = "left"
 
 let canvaMultiplier = 1
+let defaultCanvaMultiplier = 1
 
-let paintState = 1
+let paintState = 0
 let filled = false
 let filledColor = "#444444"
 let backgroundColor = undefined
@@ -49,6 +50,16 @@ const PaintState = {
     LINE: 4,
     RECT: 5,
     TRIANGLE: 6
+}
+
+const SHORTCUT_MAP = {
+    "p": PaintState.DRAW,
+    "e": PaintState.ERASE,
+    "w": PaintState.TEXT,
+    "c": PaintState.CIRCLE,
+    "l": PaintState.LINE,
+    "r": PaintState.RECT,
+    "t": PaintState.TRIANGLE
 }
 
 const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice(1).map(n => parseInt(n, 10).toString(16).padStart(2, '0')).join('')}`
@@ -75,8 +86,10 @@ function updateCursor() {
 
 function setCanvaSize(width, height) {
     let context = $("#paintboard")[0].getContext("2d")
-    context.canvas.width = currentWidth = width
-    context.canvas.height = currentHeight = height
+    currentWidth = width
+    currentHeight = height
+    context.canvas.width = width
+    context.canvas.height = height
 }
 
 function setPaintState(value) {
@@ -177,8 +190,11 @@ function clearPage() {
     context.clearRect(0, 0, currentWidth, currentHeight)
 }
 
-function renew() {
-    enableBgSetButton(true)
+function renew(force = false) {
+    if (!force && memoStack.length + dropStack.length > 0 && !confirm("Are you sure? All of your work will be discarded."))
+        return
+    setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
+    resizeCanva(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     enableUndoRedo(false, false)
     resetTextbox()
     rename("art")
@@ -187,17 +203,12 @@ function renew() {
     loadedImg = undefined
     backgroundColor = undefined
     $("#paintboard").css("background-color", "#ffffff")
-    setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     clearPage()
 }
 
 function redraw() {
     let context = $("#paintboard")[0].getContext("2d")
-    if (backgroundColor) {
-        context.fillStyle = backgroundColor
-        context.fillRect(0, 0, currentWidth, currentHeight)
-        context.fillStyle = undefined
-    }
+    context.globalCompositeOperation = "source-over"
     if (loadedImg) {
         context.drawImage(loadedImg, 0, 0, currentWidth, currentHeight)
     }
@@ -550,10 +561,21 @@ function setFont(value) {
     fontSelectorToggler()
 }
 
+function toolsButtonSelection() {
+    document.querySelectorAll(".tools-button").forEach((curr, index) => {
+        if (paintState === index) {
+            curr.classList.add("bg-gray-300")
+        } else {
+            curr.classList.remove("bg-gray-300")
+        }
+    })
+}
+
 function initPaintTools() {
     document.querySelectorAll(".tools-button").forEach((curr, index) => curr.onclick = () => {
         setPaintState(index)
         updateCursor()
+        toolsButtonSelection()
     })
 }
 
@@ -576,24 +598,31 @@ function resizeCanva(width, height) {
     const wMul = width/MAX_PAINTBOARD_WIDTH
     const hMul = height/MAX_PAINTBOARD_HEIGHT
     canvaMultiplier = Math.max(wMul, hMul)
+    defaultCanvaMultiplier = canvaMultiplier
     $("#paintboard").css("width", width / canvaMultiplier).css("height", height / canvaMultiplier)
 }
 
 function uploadProcess(files, filename) {
+    if (memoStack.length + dropStack.length > 0 && !confirm("Are you sure? All of your work will be discarded.")) {
+        return
+    }
     const context = $("#paintboard")[0].getContext("2d")
     let fr = new FileReader()
     fr.onload = (event) => {
-        renew()
-        enableBgSetButton(false)
+        renew(true)
         let img = new Image()
         img.src = event.target.result
         img.onload = function () {
             setCanvaSize(this.width, this.height)
             resizeCanva(this.width, this.height)
             context.drawImage(img, 0, 0, currentWidth, currentHeight)
+            rename(filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, ""))
+        }
+        img.onerror = () => {
+            loadedImg = undefined
+            alert("Failed to load image :(")
         }
         loadedImg = img
-        rename(filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, ""))
     }
     fr.readAsDataURL(files[0])
 }
@@ -606,20 +635,32 @@ function downloadProcess() {
     downloadURI(document.getElementById('paintboard').toDataURL("image/png").replace("png", "octet-stream"))
 }
 
-function setBackgroundColor() {
-    backgroundColor = $("#color-picker").val()
-    $("#paintboard").css("background-color", backgroundColor)
-}
-
-function enableBgSetButton(enabled) {
-    if (enabled) {
-        $("#btn-background-color").removeClass("bg-gray-200")
-        $("#btn-background-color").prop('disabled', false)
-    } else {
-        console.log("dawd")
-        $("#btn-background-color").addClass("bg-gray-300")
-        $("#btn-background-color").prop('disabled', 'disabled')
-    }
+function initKeyboardShortcut() {
+    document.addEventListener("keyup", (event) => {
+        if (SHORTCUT_MAP[event.key]) {
+            setPaintState(SHORTCUT_MAP[event.key])
+            updateCursor()
+            toolsButtonSelection()
+        } else if (["[", "]"].includes(event.key)) {
+            const currWidth = parseFloat($("#width-input").val())
+            console.log(currWidth)
+            if (event.key === "[") {
+                $("#width-input").val(currWidth-1)
+            } else {
+                $("#width-input").val(currWidth+1)
+            }
+        }
+    })
+    $("body").bind('mousewheel', function (e) {
+        if (e.originalEvent.wheelDelta / 120 < 0) {
+            canvaMultiplier = Math.min(defaultCanvaMultiplier * 2, canvaMultiplier + 0.05)
+        }
+        else {
+            canvaMultiplier = Math.max(defaultCanvaMultiplier / 2, canvaMultiplier - 0.05)
+        }
+        console.log(canvaMultiplier)
+        $("#paintboard").css("width", currentWidth / canvaMultiplier).css("height", currentHeight / canvaMultiplier)
+    })
 }
 
 function onReady() {
@@ -630,15 +671,8 @@ function onReady() {
     initFont()
     setTextAlign("left")
     rename("art")
-    enableBgSetButton(true)
-    $("body").bind('mousewheel', function (e) {
-        if (e.originalEvent.wheelDelta / 120 > 0) {
-            console.log('scrolling up !')
-        }
-        else {
-            console.log('scrolling down !')
-        }
-    })
+    initKeyboardShortcut()
+    toolsButtonSelection()
     $("#color-picker").change(() => {
         onColorPicked()
         updateColor()
