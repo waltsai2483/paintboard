@@ -37,6 +37,10 @@
 
 <body>
     <div class="grid grid-cols-1 grid-rows-1 w-screen h-screen">
+        <div id="backboard" class="ui-layer w-screen h-screen bg-gray-200 flex justify-center items-center">
+            <canvas id="paintboard" class="flex absolute bg-white shadow-xl">
+            </canvas>
+        </div>
         <div class="ui-layer flex flex-col justify-start">
             <div class="h-16 translate-y-0 opacity-50 swipe-down-hover w-full flex flex-col justify-start">
                 <div class="h-12 flex flex-row justify-center">
@@ -184,10 +188,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div id="backboard" class="ui-layer w-screen h-screen bg-gray-200 flex justify-center items-center">
-            <canvas id="paintboard" class="flex bg-white shadow-xl">
-            </canvas>
         </div>
     </div>
 </body>

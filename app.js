@@ -33,6 +33,10 @@ let textAlign = "left"
 
 let canvaMultiplier = 1
 let defaultCanvaMultiplier = 1
+let canvaLeft = 0, canvaTop = 0
+let canvaMovement = {
+    left: false, right: false, up: false, down: false, shift: false
+}
 
 let paintState = 0
 let filled = false
@@ -53,13 +57,13 @@ const PaintState = {
 }
 
 const SHORTCUT_MAP = {
-    "p": PaintState.DRAW,
-    "e": PaintState.ERASE,
-    "w": PaintState.TEXT,
-    "c": PaintState.CIRCLE,
-    "l": PaintState.LINE,
-    "r": PaintState.RECT,
-    "t": PaintState.TRIANGLE
+    "1": PaintState.DRAW,
+    "2": PaintState.ERASE,
+    "3": PaintState.TEXT,
+    "4": PaintState.CIRCLE,
+    "5": PaintState.LINE,
+    "6": PaintState.RECT,
+    "7": PaintState.TRIANGLE
 }
 
 const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice(1).map(n => parseInt(n, 10).toString(16).padStart(2, '0')).join('')}`
@@ -637,19 +641,44 @@ function downloadProcess() {
 
 function initKeyboardShortcut() {
     document.addEventListener("keyup", (event) => {
-        if (SHORTCUT_MAP[event.key]) {
-            setPaintState(SHORTCUT_MAP[event.key])
+        const key = event.key.toLowerCase()
+        if (SHORTCUT_MAP[key]) {
+            setPaintState(SHORTCUT_MAP[key])
             updateCursor()
             toolsButtonSelection()
-        } else if (["[", "]"].includes(event.key)) {
+        } else if (["[", "]"].includes(key)) {
             const currWidth = parseFloat($("#width-input").val())
             console.log(currWidth)
-            if (event.key === "[") {
+            if (key === "[") {
                 $("#width-input").val(currWidth-1)
             } else {
                 $("#width-input").val(currWidth+1)
             }
+        } else if (["w", "s", "a", "d"].includes(key)) {
+            if (key === "w") {
+                canvaMovement.up = false
+            } else if (key === "a") {
+                canvaMovement.left = false
+            } else if (key === "s") {
+                canvaMovement.down = false
+            } else if (key === "d") {
+                canvaMovement.right = false
+            }
         }
+        canvaMovement.shift = event.shiftKey
+    })
+    document.addEventListener("keydown", (event) => {
+        const key = event.key.toLowerCase()
+        if (key === "w") {
+            canvaMovement.up = true
+        } else if (key === "a") {
+            canvaMovement.left = true
+        } else if (key === "s") {
+            canvaMovement.down = true
+        } else if (key === "d") {
+            canvaMovement.right = true
+        }
+        canvaMovement.shift = event.shiftKey
     })
     $("body").bind('mousewheel', function (e) {
         if (e.originalEvent.wheelDelta / 120 < 0) {
@@ -661,6 +690,19 @@ function initKeyboardShortcut() {
         console.log(canvaMultiplier)
         $("#paintboard").css("width", currentWidth / canvaMultiplier).css("height", currentHeight / canvaMultiplier)
     })
+    
+    function movementLoop() {
+            if (canvaMovement.up || canvaMovement.down) {
+                canvaTop += ((canvaMovement.up) ? 3 : (canvaMovement.down) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+            } else {
+                canvaLeft += ((canvaMovement.left) ? 3 : (canvaMovement.right) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+            }
+            document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2}px + ${canvaLeft}px)`
+            document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2}px + ${canvaTop}px)`
+
+            setTimeout(movementLoop, 20);
+    }
+    movementLoop()
 }
 
 function onReady() {
