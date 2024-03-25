@@ -559,17 +559,21 @@ function initPainter() {
 }
 
 function undoCanva() {
-    dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
-    enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
-    clearPage()
-    redraw()
+    if (memoStack.length > 0) {
+        dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
+        enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+        clearPage()
+        redraw()
+    }
 }
 
 function redoCanva() {
+    if (dropStack.length > 0) {
         memoStack.push(dropStack.splice(dropStack.length - 1, 1)[0])
         enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
         clearPage()
         redraw()
+    }
 }
 
 function initMemory() {
