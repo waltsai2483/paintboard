@@ -40,8 +40,15 @@ let canvaMovement = {
 
 let paintState = 0
 let filled = false
-let filledColor = "#444444"
-let backgroundColor = undefined
+let filledColor = "#ffffff"
+
+let colorSelectorToggle = false
+let colorHsl = {
+    hue: 0, sat: 100, light: 50
+}
+let colorHslRectHold = {
+    hue: false, sat: false, light: false
+}
 
 let filename = "art"
 let loadedImg = undefined
@@ -101,7 +108,8 @@ function setPaintState(value) {
 }
 
 function onColorPicked() {
-    recentColors.unshift($("#color-picker").val())
+    console.log(recentColors)
+    recentColors.unshift($("#color-picker").css("background-color"))
     if (recentColors.length > 7) {
         recentColors.pop()
     }
@@ -120,7 +128,7 @@ function repickColor(index) {
     if (index < recentColors.length) {
         const picked = recentColors.splice(index, 1)
         recentColors.unshift(picked[0])
-        $("#color-picker").val(picked[0])
+        $("#color-picker").css("background-color", picked[0])
         updateColor()
     }
 }
@@ -184,7 +192,7 @@ function initColorList() {
 
 function changeBrushStat() {
     let context = $("#paintboard")[0].getContext("2d")
-    context.strokeStyle = paintState == PaintState.ERASE ? "#ffffff" : $("#color-picker").val()
+    context.strokeStyle = paintState == PaintState.ERASE ? "#ffffff" : $("#color-picker").css("background-color")
     context.lineWidth = parseFloat($("#width-input").val())
     context.globalCompositeOperation = paintState == PaintState.ERASE ? "destination-out" : "source-over";
 }
@@ -205,7 +213,6 @@ function renew(force = false) {
     memoStack = []
     dropStack = []
     loadedImg = undefined
-    backgroundColor = undefined
     $("#paintboard").css("background-color", "#ffffff")
     clearPage()
 }
@@ -337,10 +344,10 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
     input.style.left = (x) + 'px'
     input.style.top = (y) + 'px'
     input.style.width = w / canvaMultiplier + 'px'
-    input.style.height = h / canvaMultiplier+ 'px'
+    input.style.height = h / canvaMultiplier + 'px'
     input.style.fontSize = `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) / canvaMultiplier}px`
     input.style.fontFamily = $("#font-selector-text").text()
-    input.style.color = $("#color-picker").val()
+    input.style.color = $("#color-picker").css("background-color")
 
     input.onkeydown = (event) => {
         if (event.key === "Enter") {
@@ -378,8 +385,20 @@ function fontSelectorToggler() {
     }
 }
 
-function repickFillColor() {
-    filledColor = $("#filled-color-picker").val()
+function colorSelectorToggler() {
+    colorSelectorToggle = !colorSelectorToggle
+    if (colorSelectorToggle) {
+        $("#color-selector-items").fadeIn(100)
+    } else {
+        $("#color-selector-items").fadeOut(100)
+        console.log(recentColors[0])
+        console.log($("#color-picker").css("background-color"))
+        if (recentColors.length == 0 || recentColors[0] !== $("#color-picker").css("background-color")) {
+            onColorPicked()
+            updateColor()
+        }
+    }
+
 }
 
 function fillSelectorToggler() {
@@ -387,10 +406,11 @@ function fillSelectorToggler() {
     if (filled) {
         $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
         $("#fill-selector-menu").append('<span id="filled-color-label" class="align-top w-10">with</span>')
-        $("#fill-selector-menu").append(`<input id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer" value="${filledColor}"/>`)
+        $("#fill-selector-menu").append(`<button id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer rounded-lg" style="background-color: black;"></button>`)
         $("#fill-bg-changer").css("background-color", filledColor)
-        $("#filled-color-picker").change(() => {
-            repickFillColor()
+        $("#filled-color-picker").click(() => {
+            filledColor = $("#color-picker").css("background-color")
+            $("#filled-color-picker").css("background-color", filledColor)
             $("#fill-bg-changer").css("background-color", filledColor)
         })
     } else {
@@ -493,7 +513,7 @@ function initPainter() {
                     type: "circle",
                     begin: dragStart,
                     end: dragEnd,
-                    color: $("#color-picker").val(),
+                    color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
                 })
@@ -502,7 +522,7 @@ function initPainter() {
                     type: "straight",
                     begin: dragStart,
                     end: dragEnd,
-                    color: $("#color-picker").val(),
+                    color: $("#color-picker").css("background-color"),
                     width: parseFloat($("#width-input").val())
                 })
             } else if (paintState === PaintState.TRIANGLE) {
@@ -510,7 +530,7 @@ function initPainter() {
                     type: "triangle",
                     begin: dragStart,
                     end: dragEnd,
-                    color: $("#color-picker").val(),
+                    color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
                 })
@@ -519,7 +539,7 @@ function initPainter() {
                     type: "rect",
                     begin: dragStart,
                     end: dragEnd,
-                    color: $("#color-picker").val(),
+                    color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
                 })
@@ -599,8 +619,8 @@ function downloadURI(uri) {
 }
 
 function resizeCanva(width, height) {
-    const wMul = width/MAX_PAINTBOARD_WIDTH
-    const hMul = height/MAX_PAINTBOARD_HEIGHT
+    const wMul = width / MAX_PAINTBOARD_WIDTH
+    const hMul = height / MAX_PAINTBOARD_HEIGHT
     canvaMultiplier = Math.max(wMul, hMul)
     defaultCanvaMultiplier = canvaMultiplier
     $("#paintboard").css("width", width / defaultCanvaMultiplier).css("height", height / defaultCanvaMultiplier)
@@ -648,7 +668,7 @@ function initKeyboardShortcut() {
     document.addEventListener("keyup", (event) => {
         const key = event.key.toLowerCase()
         if (SHORTCUT_MAP[key] !== undefined) {
-            if ($("#textInputEmbeded").val() !== undefined) return
+            if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("width-input")) return
             setPaintState(SHORTCUT_MAP[key])
             updateCursor()
             toolsButtonSelection()
@@ -680,11 +700,11 @@ function initKeyboardShortcut() {
         } else if (["[", "]"].includes(key)) {
             const currWidth = parseFloat($("#width-input").val())
             if (key === "[") {
-                $("#width-input").val(currWidth-1)
+                $("#width-input").val(currWidth - 1)
             } else {
-                $("#width-input").val(currWidth+1)
+                $("#width-input").val(currWidth + 1)
             }
-        } 
+        }
         canvaMovement.shift = event.shiftKey
     })
     document.addEventListener("wheel", (e) => {
@@ -699,26 +719,150 @@ function initKeyboardShortcut() {
         document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
         document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
     })
-    
+
     function movementLoop() {
         if ($("#textInputEmbeded").val() !== undefined) {
             setTimeout(movementLoop, 10);
             return
         }
-            if (canvaMovement.up || canvaMovement.down) {
-                canvaTop += ((canvaMovement.up) ? 3 : (canvaMovement.down) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
-            } else {
-                canvaLeft += ((canvaMovement.left) ? 3 : (canvaMovement.right) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
-            }
-            document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
-            document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
+        if (canvaMovement.up || canvaMovement.down) {
+            canvaTop += ((canvaMovement.up) ? 3 : (canvaMovement.down) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+        } else {
+            canvaLeft += ((canvaMovement.left) ? 3 : (canvaMovement.right) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+        }
+        document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
+        document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
 
-            setTimeout(movementLoop, 10);
+        setTimeout(movementLoop, 10);
     }
     movementLoop()
 }
 
+function getColorRectMouseX(event, id) {
+    const boundings = document.getElementById(id).getBoundingClientRect()
+    let x = event.clientX - boundings.left
+    x *= document.getElementById(id).width / boundings.width
+    return x
+}
+
+function renderHue() {
+    const context = $("#color-hue-rect")[0].getContext("2d")
+    const width = 300
+    var grad = context.createLinearGradient(0, 0, width, 0)
+    for (let i = 0; i < 360; i++) {
+        grad.addColorStop(i / 359, `hsl(${i}, ${colorHsl.sat}%, ${colorHsl.light}%)`)
+    }
+    context.fillStyle = grad
+    context.fillRect(0, 0, width, 1000)
+}
+
+function renderSaturation() {
+    const context = $("#color-sat-rect")[0].getContext("2d")
+    const width = 300
+    var grad = context.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, `hsl(${colorHsl.hue}, 0%, ${colorHsl.light}%)`)
+    grad.addColorStop(1, `hsl(${colorHsl.hue}, 100%, ${colorHsl.light}%)`)
+    context.fillStyle = grad
+    context.fillRect(0, 0, width, 1000)
+}
+
+function renderLightness() {
+    const context = $("#color-light-rect")[0].getContext("2d")
+    const width = 300
+    var grad = context.createLinearGradient(0, 0, width, 0);
+    grad.addColorStop(0, `hsl(${colorHsl.hue}, ${colorHsl.sat}%, 0%)`)
+    grad.addColorStop(1, `hsl(${colorHsl.hue}, ${colorHsl.sat}%, 100%)`)
+    context.fillStyle = grad
+    context.fillRect(0, 0, width, 1000)
+}
+
+function updateColorRect() {
+    renderHue()
+    renderSaturation()
+    renderLightness()
+    $("#color-hue-label").text(colorHsl.hue)
+    $("#color-sat-label").text(colorHsl.sat + "%")
+    $("#color-light-label").text(colorHsl.light + "%")
+}
+
+function hslToHex(h, s, l) {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100
+    const f = n => {
+        const k = (n + h / 30) % 12
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+        return Math.round(255 * color).toString(16).padStart(2, '0')
+    };
+    return `#${f(0)}${f(8)}${f(4)}`
+}
+
+function updateMainColor() {
+    onColorPicked()
+    updateColor()
+}
+
+function initColorRect() {
+    updateColorRect()
+    $("#color-hue-rect").mousedown((event) => {
+        colorHslRectHold.hue = true
+    })
+    $("#color-sat-rect").mousedown((event) => {
+        colorHslRectHold.sat = true
+    })
+    $("#color-light-rect").mousedown((event) => {
+        colorHslRectHold.light = true
+    })
+    $("body").mouseup((event) => {
+        colorHslRectHold.hue = false
+        colorHslRectHold.sat = false
+        colorHslRectHold.light = false
+    })
+    $("#color-hue-rect").mousemove((event) => {
+        if (colorHslRectHold.hue) {
+            const colorRectX = getColorRectMouseX(event, "color-hue-rect")
+            colorHsl.hue = Math.ceil(colorRectX * 360 / 299)
+
+            updateColorRect()
+            const context = $("#color-hue-rect")[0].getContext("2d")
+            context.fillStyle = "#ffffff"
+            context.fillRect(colorRectX - 3, 0, 6, 1000)
+            context.fillStyle = "#dddddd"
+            context.fillRect(colorRectX - 1, 0, 2, 1000)
+            $("#color-picker").css("background-color", hslToHex(colorHsl.hue, colorHsl.sat, colorHsl.light))
+        }
+    })
+    $("#color-sat-rect").mousemove((event) => {
+        if (colorHslRectHold.sat) {
+            const colorRectX = getColorRectMouseX(event, "color-sat-rect")
+            colorHsl.sat = Math.ceil(colorRectX * 100 / 299)
+
+            updateColorRect()
+            const context = $("#color-sat-rect")[0].getContext("2d")
+            context.fillStyle = "#ffffff"
+            context.fillRect(colorRectX - 3, 0, 6, 1000)
+            context.fillStyle = "#dddddd"
+            context.fillRect(colorRectX - 1, 0, 2, 1000)
+            $("#color-picker").css("background-color", hslToHex(colorHsl.hue, colorHsl.sat, colorHsl.light))
+        }
+    })
+    $("#color-light-rect").mousemove((event) => {
+        if (colorHslRectHold.light) {
+            const colorRectX = getColorRectMouseX(event, "color-light-rect")
+            colorHsl.light = Math.ceil(colorRectX * 100 / 299)
+
+            updateColorRect()
+            const context = $("#color-light-rect")[0].getContext("2d")
+            context.fillStyle = "#ffffff"
+            context.fillRect(colorRectX - 3, 0, 6, 1000)
+            context.fillStyle = "#dddddd"
+            context.fillRect(colorRectX - 1, 0, 2, 1000)
+            $("#color-picker").css("background-color", hslToHex(colorHsl.hue, colorHsl.sat, colorHsl.light))
+        }
+    })
+}
+
 function onReady() {
+    $("#color-picker").css("background-color", "#000000")
     initColorList()
     initPainter()
     initPaintTools()
@@ -728,10 +872,9 @@ function onReady() {
     rename("art")
     initKeyboardShortcut()
     toolsButtonSelection()
-    $("#color-picker").change(() => {
-        onColorPicked()
-        updateColor()
-    })
+    initColorRect()
+    $("#font-selector-items").hide()
+    $("#color-selector-items").hide()
     $("#btn-upload").change(() => {
         if ($("#btn-upload").prop('files')[0]) {
             uploadProcess($("#btn-upload").prop('files'), $("#btn-upload").val())
