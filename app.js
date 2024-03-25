@@ -603,7 +603,9 @@ function resizeCanva(width, height) {
     const hMul = height/MAX_PAINTBOARD_HEIGHT
     canvaMultiplier = Math.max(wMul, hMul)
     defaultCanvaMultiplier = canvaMultiplier
-    $("#paintboard").css("width", width / canvaMultiplier).css("height", height / canvaMultiplier)
+    $("#paintboard").css("width", width / defaultCanvaMultiplier).css("height", height / defaultCanvaMultiplier)
+    document.getElementById("paintboard").style.left = `calc(50% - ${width / 2 / defaultCanvaMultiplier}px + ${canvaLeft}px)`
+    document.getElementById("paintboard").style.top = `calc(50% - ${height / 2 / defaultCanvaMultiplier}px + ${canvaTop}px)`
 }
 
 function uploadProcess(files, filename) {
@@ -617,6 +619,9 @@ function uploadProcess(files, filename) {
         let img = new Image()
         img.src = event.target.result
         img.onload = function () {
+            canvaLeft = 0
+            canvaTop = 0
+            canvaMultiplier = 1
             setCanvaSize(this.width, this.height)
             resizeCanva(this.width, this.height)
             context.drawImage(img, 0, 0, currentWidth, currentHeight)
@@ -642,13 +647,13 @@ function downloadProcess() {
 function initKeyboardShortcut() {
     document.addEventListener("keyup", (event) => {
         const key = event.key.toLowerCase()
-        if (SHORTCUT_MAP[key]) {
+        if (SHORTCUT_MAP[key] !== undefined) {
+            if ($("#textInputEmbeded").val() !== undefined) return
             setPaintState(SHORTCUT_MAP[key])
             updateCursor()
             toolsButtonSelection()
         } else if (["[", "]"].includes(key)) {
             const currWidth = parseFloat($("#width-input").val())
-            console.log(currWidth)
             if (key === "[") {
                 $("#width-input").val(currWidth-1)
             } else {
@@ -677,30 +682,36 @@ function initKeyboardShortcut() {
             canvaMovement.down = true
         } else if (key === "d") {
             canvaMovement.right = true
+        } else if (key === "escape") {
+            resetTextbox()
         }
         canvaMovement.shift = event.shiftKey
     })
     $("body").bind('mousewheel', function (e) {
+        if ($("#textInputEmbeded").val() !== undefined) return
         if (e.originalEvent.wheelDelta / 120 < 0) {
             canvaMultiplier = Math.min(defaultCanvaMultiplier * 2, canvaMultiplier + 0.05)
         }
         else {
             canvaMultiplier = Math.max(defaultCanvaMultiplier / 2, canvaMultiplier - 0.05)
         }
-        console.log(canvaMultiplier)
         $("#paintboard").css("width", currentWidth / canvaMultiplier).css("height", currentHeight / canvaMultiplier)
     })
     
     function movementLoop() {
+        if ($("#textInputEmbeded").val() !== undefined) {
+            setTimeout(movementLoop, 10);
+            return
+        }
             if (canvaMovement.up || canvaMovement.down) {
                 canvaTop += ((canvaMovement.up) ? 3 : (canvaMovement.down) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
             } else {
                 canvaLeft += ((canvaMovement.left) ? 3 : (canvaMovement.right) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
             }
-            document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2}px + ${canvaLeft}px)`
-            document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2}px + ${canvaTop}px)`
+            document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
+            document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
 
-            setTimeout(movementLoop, 20);
+            setTimeout(movementLoop, 10);
     }
     movementLoop()
 }
