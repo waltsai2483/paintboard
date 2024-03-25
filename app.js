@@ -652,13 +652,6 @@ function initKeyboardShortcut() {
             setPaintState(SHORTCUT_MAP[key])
             updateCursor()
             toolsButtonSelection()
-        } else if (["[", "]"].includes(key)) {
-            const currWidth = parseFloat($("#width-input").val())
-            if (key === "[") {
-                $("#width-input").val(currWidth-1)
-            } else {
-                $("#width-input").val(currWidth+1)
-            }
         } else if (["w", "s", "a", "d"].includes(key)) {
             if (key === "w") {
                 canvaMovement.up = false
@@ -684,18 +677,27 @@ function initKeyboardShortcut() {
             canvaMovement.right = true
         } else if (key === "escape") {
             resetTextbox()
-        }
+        } else if (["[", "]"].includes(key)) {
+            const currWidth = parseFloat($("#width-input").val())
+            if (key === "[") {
+                $("#width-input").val(currWidth-1)
+            } else {
+                $("#width-input").val(currWidth+1)
+            }
+        } 
         canvaMovement.shift = event.shiftKey
     })
-    $("body").bind('mousewheel', function (e) {
+    document.addEventListener("wheel", (e) => {
         if ($("#textInputEmbeded").val() !== undefined) return
-        if (e.originalEvent.wheelDelta / 120 < 0) {
+        if (e.wheelDelta < 0) {
             canvaMultiplier = Math.min(defaultCanvaMultiplier * 2, canvaMultiplier + 0.05)
         }
         else {
             canvaMultiplier = Math.max(defaultCanvaMultiplier / 2, canvaMultiplier - 0.05)
         }
         $("#paintboard").css("width", currentWidth / canvaMultiplier).css("height", currentHeight / canvaMultiplier)
+        document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
+        document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
     })
     
     function movementLoop() {
