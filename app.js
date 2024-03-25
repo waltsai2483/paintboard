@@ -557,20 +557,28 @@ function initPainter() {
         }
     })
 }
-``
-function initMemory() {
-    enableUndoRedo(false, false)
-    $("#btn-undo").click(() => {
-        dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
-        enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
-        clearPage()
-        redraw()
-    })
-    $("#btn-redo").click(() => {
+
+function undoCanva() {
+    dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
+    enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+    clearPage()
+    redraw()
+}
+
+function redoCanva() {
         memoStack.push(dropStack.splice(dropStack.length - 1, 1)[0])
         enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
         clearPage()
         redraw()
+}
+
+function initMemory() {
+    enableUndoRedo(false, false)
+    $("#btn-undo").click(() => {
+        undoCanva()
+    })
+    $("#btn-redo").click(() => {
+        redoCanva()
     })
 }
 
@@ -703,6 +711,12 @@ function initKeyboardShortcut() {
                 $("#width-input").val(currWidth - 1)
             } else {
                 $("#width-input").val(currWidth + 1)
+            }
+        } else if (event.ctrlKey && (key === "z" || key === "x")) {
+            if (key === "z") {
+                undoCanva()
+            } else {
+                redoCanva()
             }
         }
         canvaMovement.shift = event.shiftKey
