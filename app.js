@@ -295,6 +295,7 @@ function updateLayerHTML() {
         const button = $('<button class="flex w-7 h-6 rounded-2xl bg-gray-300 bg-opacity-60 hover:bg-opacity-100 shadow-md text-center justify-center items-center font-semibold text-sm">x</button>')
         const row = $('<div class="flex flex-row h-16 justify-between items-center p-2"></div>')
         button.click((event) => {
+            console.log("test")
             if (layerList.length > 1) {
                 if (currentUsedLayer === index) {
                     currentUsedLayer = Math.max(0, currentUsedLayer - 1)
@@ -314,7 +315,7 @@ function updateLayerHTML() {
         })
 
         box.append('<canvas class="layer-preview"></canvas>')
-        row.append(`<span class="flex w-16 text-sm text-ellipsis overflow-hidden">${layer.name}</span>`)
+        row.append(`<span class="flex w-16 text-sm line-clamp-2">${layer.name}</span>`)
         row.append(button)
         box.append(row)
         $("#layer-list").append(box)
@@ -366,6 +367,7 @@ function initLayers() {
         redraw()
         updateLayer()
     })
+    document.getElementById("layer-input").addEventListener("keydown", (event) => { if (event.key === "Enter" && $("#layer-input").val().length > 0) addNewLayer() })
 }
 
 function addNewLayer() {
@@ -555,6 +557,9 @@ function initPainter() {
         updateMouseCoordinates(event)
         enableUiDetect(false)
         changeBrushStat()
+        if (colorSelectorToggle) {
+            colorSelectorToggler()
+        }
         if (paintState >= PaintState.TEXT) {
             isDragging = true
             dragStart = { x: mouseX, y: mouseY }
@@ -590,11 +595,6 @@ function initPainter() {
                 context.closePath()
             }
             context.beginPath()
-            context.fillStyle = "#9999fa"
-            context.font = "16px Arial"
-            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}`, dragStart.x + 8, dragStart.y - 8)
-            context.fillStyle = undefined
-            context.lineWidth = 4;
             if (paintState === PaintState.CIRCLE) {
                 context.beginPath()
                 context.ellipse(0.5 * (mouseX + dragStart.x), 0.5 * (mouseY + dragStart.y), Math.abs(mouseX - dragStart.x) / 2, Math.abs(mouseY - dragStart.y) / 2, 0, 0, 2 * Math.PI)
@@ -612,6 +612,11 @@ function initPainter() {
                 context.lineTo(dragStart.x, dragStart.y)
                 context.stroke()
             }
+            context.fillStyle = "#9999fa"
+            context.font = "16px Arial"
+            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}`, mouseX + 5, mouseY)
+            context.fillStyle = undefined
+            context.lineWidth = 4;
         } else if (isDrawing) {
             context.lineTo(mouseX, mouseY)
             context.stroke()

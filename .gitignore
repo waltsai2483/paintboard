@@ -1,2 +1,8 @@
 .idea/*
 tailwind.config.js
+public/*
+.github/*
+.firebase/*
+.firebaserc
+firebase.json
+config.js
