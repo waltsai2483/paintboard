@@ -1,7 +1,7 @@
 # Assignment 1 - Web Canvas
 
 ## UI介面
-![image](https://hackmd.io/_uploads/HygfwvzyC.png)
+![](https://i.imgur.com/xe6QKUO.png)
 
 * 將控制功能集中在上方的橫排，左側為工具列、右側則用於調控工具屬性
 * 將滑鼠移至指定欄時會降低透明度並彈出
