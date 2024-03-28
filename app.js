@@ -19,6 +19,9 @@ let recentColors = []
 let memoStack = []
 let dropStack = []
 
+let layerList = []
+let currentUsedLayer = 0
+
 let currentWidth = MAX_PAINTBOARD_WIDTH
 let currentHeight = MAX_PAINTBOARD_HEIGHT
 let mouseX = 0, mouseY = 0
@@ -203,18 +206,86 @@ function clearPage() {
 }
 
 function renew(force = false) {
-    if (!force && memoStack.length + dropStack.length > 0 && !confirm("Are you sure? All of your work will be discarded."))
+    if (!confirm("Are you sure? All of your work will be discarded."))
         return
     setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     resizeCanva(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     enableUndoRedo(false, false)
     resetTextbox()
     rename("art")
-    memoStack = []
-    dropStack = []
+    layerList = []
+    initLayers()
     loadedImg = undefined
     $("#paintboard").css("background-color", "#ffffff")
     clearPage()
+}
+
+function render(context, element) {
+    if (element.type == "text") {
+        context.font = element.font
+        context.fillStyle = element.color
+        context.textAlign = element.align
+        let offset = 0
+        if (element.align === "center") {
+            offset = element.width / 2
+        } else if (element.align === "right") {
+            offset = element.width
+        }
+        context.fillText(element.text, element.x + offset, element.y, element.width)
+    } else {
+        context.font = undefined
+        context.fillStyle = element.filledColor
+        context.strokeStyle = element.color
+        context.lineWidth = element.filledColor ? element.width * 2 : element.width
+        context.globalCompositeOperation = element.eraseMode ? "destination-out" : "source-over"
+        if (element.type == "line") {
+            context.beginPath();
+            context.moveTo(element.points[0].x, element.points[0].y)
+            for (let i = 1; i < element.points.length; i++) {
+                context.lineTo(element.points[i].x, element.points[i].y)
+            }
+            context.stroke();
+        } else if (element.type == "circle") {
+            context.beginPath()
+            context.ellipse(0.5 * (element.end.x + element.begin.x), 0.5 * (element.end.y + element.begin.y), Math.abs(element.end.x - element.begin.x) / 2, Math.abs(element.end.y - element.begin.y) / 2, 0, 0, 2 * Math.PI)
+            context.stroke()
+        } else if (element.type == "straight") {
+            context.beginPath()
+            context.moveTo(element.begin.x, element.begin.y)
+            context.lineTo(element.end.x, element.end.y)
+            context.stroke()
+        } else if (element.type == "triangle") {
+            context.beginPath()
+            context.moveTo(element.begin.x, element.begin.y)
+            context.lineTo(element.end.x, element.begin.y)
+            context.lineTo(0.5 * (element.end.x + element.begin.x), element.end.y)
+            context.lineTo(element.begin.x, element.begin.y)
+            context.lineTo(element.end.x, element.begin.y)
+            context.stroke()
+        } else if (element.type == "rect") {
+            context.beginPath()
+            context.rect(element.begin.x, element.begin.y, element.end.x - element.begin.x, element.end.y - element.begin.y)
+            context.stroke()
+        }
+        if (element.filledColor) context.fill()
+        context.fillStyle = undefined
+        context.globalCompositeOperation = "source-over"
+    }
+}
+
+function initLayers() {
+    layerList.push({
+        name: "Default",
+        memoStack: [],
+        dropStack: []
+    })
+}
+
+function updateLayer() {
+    const context = $(".layer-preview").get(currentUsedLayer).getContext("2d")
+    context.canvas.width = currentWidth
+    context.canvas.height = currentHeight
+    layerList[currentUsedLayer].memoStack.map((element) => render(context, element))
 }
 
 function redraw() {
@@ -222,60 +293,11 @@ function redraw() {
     context.globalCompositeOperation = "source-over"
     if (loadedImg) {
         context.drawImage(loadedImg, 0, 0, currentWidth, currentHeight)
+    } else {
+        context.clearRect(0, 0, currentWidth, currentHeight)
     }
-    memoStack.forEach((element) => {
-        if (element.type == "text") {
-            context.font = element.font
-            context.fillStyle = element.color
-            context.textAlign = element.align
-            let offset = 0
-            if (element.align === "center") {
-                offset = element.width / 2
-            } else if (element.align === "right") {
-                offset = element.width
-            }
-            context.fillText(element.text, element.x + offset, element.y, element.width)
-        } else {
-            context.font = undefined
-            context.fillStyle = element.filledColor
-            context.strokeStyle = element.color
-            context.lineWidth = element.filledColor ? element.width * 2 : element.width
-            context.globalCompositeOperation = element.eraseMode ? "destination-out" : "source-over"
-            if (element.type == "line") {
-                context.beginPath();
-                context.moveTo(element.points[0].x, element.points[0].y)
-                for (let i = 1; i < element.points.length; i++) {
-                    context.lineTo(element.points[i].x, element.points[i].y)
-                }
-                context.stroke();
-            } else if (element.type == "circle") {
-                context.beginPath()
-                context.ellipse(0.5 * (element.end.x + element.begin.x), 0.5 * (element.end.y + element.begin.y), Math.abs(element.end.x - element.begin.x) / 2, Math.abs(element.end.y - element.begin.y) / 2, 0, 0, 2 * Math.PI)
-                context.stroke()
-            } else if (element.type == "straight") {
-                context.beginPath()
-                context.moveTo(element.begin.x, element.begin.y)
-                context.lineTo(element.end.x, element.end.y)
-                context.stroke()
-            } else if (element.type == "triangle") {
-                context.beginPath()
-                context.moveTo(element.begin.x, element.begin.y)
-                context.lineTo(element.end.x, element.begin.y)
-                context.lineTo(0.5 * (element.end.x + element.begin.x), element.end.y)
-                context.lineTo(element.begin.x, element.begin.y)
-                context.lineTo(element.end.x, element.begin.y)
-                context.stroke()
-            } else if (element.type == "rect") {
-                context.beginPath()
-                context.rect(element.begin.x, element.begin.y, element.end.x - element.begin.x, element.end.y - element.begin.y)
-                context.stroke()
-            }
-            if (element.filledColor) context.fill()
-            context.fillStyle = undefined
-            context.globalCompositeOperation = "source-over"
-        }
-
-    });
+    layerList.map((layer) => layer.memoStack.forEach((element) => render(context, element)))
+    updateLayer()
 }
 
 function resetTextbox() {
@@ -354,7 +376,7 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
             const dragStart = { x: $("#textInputEmbeded")[0].getAttribute("startX"), y: $("#textInputEmbeded")[0].getAttribute("startY") }
             const dragEnd = { x: $("#textInputEmbeded")[0].getAttribute("endX"), y: $("#textInputEmbeded")[0].getAttribute("endY") }
             const align = $("#textInputEmbeded")[0].getAttribute("align")
-            memoStack.push({
+            layerList[currentUsedLayer].memoStack.push({
                 type: "text",
                 x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
                 y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()),
@@ -365,7 +387,7 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
                 align: align
             })
             resetTextbox()
-            enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+            enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
         }
     };
 
@@ -509,7 +531,7 @@ function initPainter() {
                 return
             }
             if (paintState === PaintState.CIRCLE) {
-                memoStack.push({
+                layerList[currentUsedLayer].memoStack.push({
                     type: "circle",
                     begin: dragStart,
                     end: dragEnd,
@@ -518,7 +540,7 @@ function initPainter() {
                     width: parseFloat($("#width-input").val())
                 })
             } else if (paintState === PaintState.LINE) {
-                memoStack.push({
+                layerList[currentUsedLayer].memoStack.push({
                     type: "straight",
                     begin: dragStart,
                     end: dragEnd,
@@ -526,7 +548,7 @@ function initPainter() {
                     width: parseFloat($("#width-input").val())
                 })
             } else if (paintState === PaintState.TRIANGLE) {
-                memoStack.push({
+                layerList[currentUsedLayer].memoStack.push({
                     type: "triangle",
                     begin: dragStart,
                     end: dragEnd,
@@ -535,7 +557,7 @@ function initPainter() {
                     width: parseFloat($("#width-input").val())
                 })
             } else if (paintState === PaintState.RECT) {
-                memoStack.push({
+                layerList[currentUsedLayer].memoStack.push({
                     type: "rect",
                     begin: dragStart,
                     end: dragEnd,
@@ -544,33 +566,34 @@ function initPainter() {
                     width: parseFloat($("#width-input").val())
                 })
             }
-            dropStack = []
+            layerList[currentUsedLayer].dropStack = []
             clearPage()
             redraw()
-            enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+            enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
         } if (isDrawing) {
             isDrawing = false
-            memoStack.push(path)
-            dropStack = []
+            layerList[currentUsedLayer].memoStack.push(path)
+            layerList[currentUsedLayer].dropStack = []
             path = {}
-            enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+            enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
+            updateLayer()
         }
     })
 }
 
 function undoCanva() {
-    if (memoStack.length > 0) {
-        dropStack.push(memoStack.splice(memoStack.length - 1, 1)[0])
-        enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+    if (layerList[currentUsedLayer].memoStack.length > 0) {
+        layerList[currentUsedLayer].dropStack.push(layerList[currentUsedLayer].memoStack.splice(layerList[currentUsedLayer].memoStack.length - 1, 1)[0])
+        enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
         clearPage()
         redraw()
     }
 }
 
 function redoCanva() {
-    if (dropStack.length > 0) {
-        memoStack.push(dropStack.splice(dropStack.length - 1, 1)[0])
-        enableUndoRedo(memoStack.length != 0, dropStack.length != 0)
+    if (layerList[currentUsedLayer].dropStack.length > 0) {
+        layerList[currentUsedLayer].memoStack.push(layerList[currentUsedLayer].dropStack.splice(layerList[currentUsedLayer].dropStack.length - 1, 1)[0])
+        enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
         clearPage()
         redraw()
     }
@@ -641,7 +664,7 @@ function resizeCanva(width, height) {
 }
 
 function uploadProcess(files, filename) {
-    if (memoStack.length + dropStack.length > 0 && !confirm("Are you sure? All of your work will be discarded.")) {
+    if (!confirm("Are you sure? All of your work will be discarded.")) {
         return
     }
     const context = $("#paintboard")[0].getContext("2d")
@@ -889,6 +912,7 @@ function onReady() {
     setTextAlign("left")
     rename("art")
     updateCursor()
+    initLayers()
     initKeyboardShortcut()
     toolsButtonSelection()
     initColorRect()
