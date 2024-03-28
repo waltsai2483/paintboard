@@ -156,11 +156,11 @@ function enableUiDetect(enable) {
     if (enable) {
         $(".disable-right-hover").removeClass("disable-right-hover").addClass("swipe-right-hover")
         $(".disable-left-hover").removeClass("disable-left-hover").addClass("swipe-left-hover")
-        $(".disable-top-hover").removeClass("disable-top-hover").addClass("swipe-top-hover")
+        $(".disable-top-hover").removeClass("disable-top-hover").addClass("swipe-down-hover")
     } else {
         $(".swipe-right-hover").removeClass("swipe-right-hover").addClass("disable-right-hover")
         $(".swipe-left-hover").removeClass("swipe-left-hover").addClass("disable-left-hover")
-        $(".swipe-top-hover").removeClass("swipe-top-hover").addClass("disable-top-hover")
+        $(".swipe-down-hover").removeClass("swipe-down-hover").addClass("disable-top-hover")
     }
 }
 
