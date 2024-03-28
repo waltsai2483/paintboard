@@ -13,6 +13,7 @@ body {
 
 .disable-left-hover,
 .disable-right-hover,
-.disable-top-hover {
+.disable-up-hover,
+.disable-down-hover {
     visibility: collapse;
 }

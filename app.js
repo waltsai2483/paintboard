@@ -56,6 +56,8 @@ let colorHslRectHold = {
 let filename = "art"
 let loadedImg = undefined
 
+let layerDragging = false
+
 const PaintState = {
     DRAW: 0,
     ERASE: 1,
@@ -146,7 +148,7 @@ function getMouseCoordinates(event) {
     return { x: x, y: y }
 }
 
-function setMouseCoordinates(event) {
+function updateMouseCoordinates(event) {
     const pos = getMouseCoordinates(event)
     if (!(pos.x < 0 || pos.y < 0 || pos.x > currentWidth || pos.y > currentHeight)) {
         mouseX = pos.x
@@ -158,12 +160,14 @@ function setMouseCoordinates(event) {
 function enableUiDetect(enable) {
     if (enable) {
         $(".disable-right-hover").removeClass("disable-right-hover").addClass("swipe-right-hover")
+        $(".disable-up-hover").removeClass("disable-up-hover").addClass("swipe-up-hover")
         $(".disable-left-hover").removeClass("disable-left-hover").addClass("swipe-left-hover")
-        $(".disable-top-hover").removeClass("disable-top-hover").addClass("swipe-down-hover")
+        $(".disable-down-hover").removeClass("disable-down-hover").addClass("swipe-down-hover")
     } else {
         $(".swipe-right-hover").removeClass("swipe-right-hover").addClass("disable-right-hover")
         $(".swipe-left-hover").removeClass("swipe-left-hover").addClass("disable-left-hover")
-        $(".swipe-down-hover").removeClass("swipe-down-hover").addClass("disable-top-hover")
+        $(".swipe-down-hover").removeClass("swipe-down-hover").addClass("disable-down-hover")
+        $(".swipe-up-hover").removeClass("swipe-up-hover").addClass("disable-up-hover")
     }
 }
 
@@ -206,7 +210,7 @@ function clearPage() {
 }
 
 function renew(force = false) {
-    if (!confirm("Are you sure? All of your work will be discarded."))
+    if (!force && !confirm("Are you sure? All of your work will be discarded."))
         return
     setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     resizeCanva(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
@@ -220,7 +224,8 @@ function renew(force = false) {
     clearPage()
 }
 
-function render(context, element) {
+function render(context, element, opacity = 1) {
+    context.globalAlpha = opacity
     if (element.type == "text") {
         context.font = element.font
         context.fillStyle = element.color
@@ -273,19 +278,106 @@ function render(context, element) {
     }
 }
 
-function initLayers() {
-    layerList.push({
-        name: "Default",
-        memoStack: [],
-        dropStack: []
+function updateLayer() {
+    layerList.map((layer, index) => {
+        const context = $(".layer-preview").get(index).getContext("2d")
+        context.canvas.width = currentWidth
+        context.canvas.height = currentHeight
+        layerList[index].memoStack.map((element) => render(context, element, layer.opacity))
     })
 }
 
-function updateLayer() {
-    const context = $(".layer-preview").get(currentUsedLayer).getContext("2d")
-    context.canvas.width = currentWidth
-    context.canvas.height = currentHeight
-    layerList[currentUsedLayer].memoStack.map((element) => render(context, element))
+function updateLayerHTML() {
+    $("#layer-list").empty()
+    // `<div class="layer-box"><canvas class="layer-preview"></canvas><div class="flex flex-row justify-between items-center"><span class="flex w-full h-8 m-2 align-middle text-center text-sm">${layer.name}</span><button class=""></button></div></div>`
+    layerList.map((layer, index, array) => {
+        const box = $(`<div class="layer-box bg-gray-200" index="${index}"></div>`)
+        const button = $('<button class="flex w-7 h-6 rounded-2xl bg-gray-300 bg-opacity-60 hover:bg-opacity-100 shadow-md text-center justify-center items-center font-semibold text-sm">x</button>')
+        const row = $('<div class="flex flex-row h-16 justify-between items-center p-2"></div>')
+        button.click((event) => {
+            if (layerList.length > 1) {
+                if (currentUsedLayer === index) {
+                    currentUsedLayer = Math.max(0, currentUsedLayer - 1)
+                }
+                array.splice(index, 1)
+                updateLayerHTML()
+                redraw()
+            }
+        })
+        box.click((event) => {
+            const index = event.target.closest(".layer-box").getAttribute("index")
+            $(".layer-box").eq(currentUsedLayer).removeClass("selected-layer")
+            $(".layer-box").eq(index).addClass("selected-layer")
+            currentUsedLayer = index
+
+            $("#layer-opacity-input").val(parseInt(layerList[currentUsedLayer].opacity * 100))
+        })
+
+        box.append('<canvas class="layer-preview"></canvas>')
+        row.append(`<span class="flex w-16 text-sm text-ellipsis overflow-hidden">${layer.name}</span>`)
+        row.append(button)
+        box.append(row)
+        $("#layer-list").append(box)
+    })
+    $(".layer-box").eq(currentUsedLayer).addClass("selected-layer")
+    updateLayer()
+}
+
+function initLayers() {
+    layerList.push({
+        name: "Default",
+        opacity: 1,
+        memoStack: [],
+        dropStack: []
+    })
+    $("#layer-input").on("input", (event) => {
+        $("#btn-add-layer").prop("disabled", $("#layer-input").val().length == 0)
+        if ($("#layer-input").val().length == 0) {
+            $("#btn-add-layer").addClass("bg-gray-100").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
+        } else {
+            $("#btn-add-layer").removeClass("bg-gray-100").addClass("hover:bg-gray-300").addClass("bg-gray-200")
+        }
+    })
+    updateLayerHTML()
+    $("#layer-list").sortable({
+        scroll: false,
+        axis: "x",
+        start: () => layerDragging = true,
+        stop: (event, ui) => {
+            const arrangement = []
+            let reselectable = true
+            $(".layer-box").each((index, layer) => {
+                const oldIdx = parseInt(layer.getAttribute("index"))
+                arrangement.push(layerList[oldIdx])
+                if (oldIdx == currentUsedLayer && reselectable) {
+                    currentUsedLayer = index
+                    reselectable = false
+                }
+                layer.setAttribute("index", index)
+            })
+            layerDragging = false
+            layerList = arrangement
+            redraw()
+        }
+    })
+    $(".layer-box").eq(currentUsedLayer).removeClass("bg-gray-200").addClass("bg-gray-100")
+    $("#layer-opacity-input").on("change", () => {
+        layerList[currentUsedLayer].opacity = $("#layer-opacity-input").val() / 100.0
+        redraw()
+        updateLayer()
+    })
+}
+
+function addNewLayer() {
+    layerList.push({
+        name: $("#layer-input").val(),
+        opacity: 1,
+        memoStack: [],
+        dropStack: []
+    })
+    $("#layer-input").val("")
+    $("#btn-add-layer").prop("disabled", true).addClass("bg-gray-100").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
+    updateLayerHTML()
 }
 
 function redraw() {
@@ -296,7 +388,14 @@ function redraw() {
     } else {
         context.clearRect(0, 0, currentWidth, currentHeight)
     }
-    layerList.map((layer) => layer.memoStack.forEach((element) => render(context, element)))
+    layerList.map((layer) => {
+        const newCanva = document.createElement("canvas")
+        const newContext = newCanva.getContext("2d")
+        newContext.canvas.width = currentWidth
+        newContext.canvas.height = currentHeight
+        layer.memoStack.forEach((element) => render(newContext, element, layer.opacity))
+        context.drawImage(newCanva, 0, 0)
+    })
     updateLayer()
 }
 
@@ -453,7 +552,7 @@ function initPainter() {
         if (dragEnd !== undefined) {
             resetTextbox()
         }
-        setMouseCoordinates(event)
+        updateMouseCoordinates(event)
         enableUiDetect(false)
         changeBrushStat()
         if (paintState >= PaintState.TEXT) {
@@ -473,12 +572,12 @@ function initPainter() {
                 }]
             }
             context.beginPath()
-            context.moveTo(mouseX, mouseY)
             context.lineCap = 'round';
+            context.moveTo(mouseX, mouseY)
         }
     })
     $("#paintboard").mousemove((event) => {
-        setMouseCoordinates(event)
+        updateMouseCoordinates(event)
         if (isDragging) {
             clearPage()
             redraw()
@@ -521,7 +620,7 @@ function initPainter() {
     })
 
     $("body").mouseup((event) => {
-        setMouseCoordinates(event)
+        updateMouseCoordinates(event)
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
@@ -577,6 +676,7 @@ function initPainter() {
             path = {}
             enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
             updateLayer()
+            redraw()
         }
     })
 }
@@ -703,7 +803,7 @@ function initKeyboardShortcut() {
     document.addEventListener("keyup", (event) => {
         const key = event.key.toLowerCase()
         if (SHORTCUT_MAP[key] !== undefined) {
-            if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("width-input")) return
+            if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input")) return
             setPaintState(SHORTCUT_MAP[key])
             updateCursor()
             toolsButtonSelection()
@@ -762,7 +862,7 @@ function initKeyboardShortcut() {
     })
 
     function movementLoop() {
-        if ($("#textInputEmbeded").val() !== undefined) {
+        if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input")) {
             setTimeout(movementLoop, 10);
             return
         }
