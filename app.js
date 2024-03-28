@@ -888,6 +888,7 @@ function onReady() {
     initFont()
     setTextAlign("left")
     rename("art")
+    updateCursor()
     initKeyboardShortcut()
     toolsButtonSelection()
     initColorRect()
