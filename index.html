@@ -38,10 +38,10 @@
             @apply transition ease-in-out
         }
         .layer-box {
-            @apply flex flex-col w-24 h-full hover:bg-gray-100 bg-gray-200 rounded-md shadow-md select-none cursor-pointer
+            @apply flex flex-col w-24 h-full hover:bg-gray-100 bg-gray-200 shadow-md select-none cursor-pointer items-center
         }
         .layer-preview {
-            @apply w-full h-full bg-white rounded-t-lg shadow-sm
+            @apply w-full h-full bg-white
         }
         .selected-layer {
             @apply !bg-gray-100 -translate-y-1
@@ -94,24 +94,24 @@
                     <div
                         class="w-2/3 p-5 bg-gray-50 bg-opacity-65 rounded-xl shadow-xl border-2 border-gray-100 flex flex-row justify-between items-center z-10">
                         <div class="flex flex-col justify-center items-center w-60 h-full">
-                            <span class="text-start font-semibold">Layers</span>
-                            <div class="flex flex-row h-12 items-center justify-between p-2">
+                            <span class="h-10 lg:h-12 text-start font-semibold">Layers</span>
+                            <div class="flex flex-row h-10 lg:h-12 items-center justify-between p-2">
                                 <span class="w-14 m-1 text-sm">Opacity</span>
                                 <input id="layer-opacity-input" type="number"
                                     class="w-32 h-full px-2 shadow-sm bg-white rounded-lg text-sm" min="0" max="100"
                                     value="100" oninput="this.value = this.value.slice(0, 3)" />
                                 <span class="m-1 text-sm">%</span>
                             </div>
-                            <div class="flex flex-row h-12 items-center justify-between p-2">
-                                <input id="layer-input" class="shadow-sm" type="text" maxlength="16"
+                            <div class="flex flex-row h-10 lg:h-12 items-center justify-between p-2">
+                                <input id="layer-input" type="text" maxlength="16"
                                     oninput="if (this.value.length > 16) this.value = this.value.slice(0, 16)"
                                     class="w-full h-full shadow-sm px-2 bg-white rounded-l-lg text-sm" />
                                 <button id="btn-add-layer" onclick="addNewLayer()"
-                                    class="w-20 h-full text-sm align-middle shadow-md rounded-r-lg bg-gray-100"
-                                    disabled>Add</button>
+                                    class="w-12 h-full text-sm align-middle shadow-md rounded-r-lg bg-gray-50 font-semibold"
+                                    disabled>+</button>
                             </div>
                         </div>
-                        <div id="layer-list" class="flex flex-row w-full h-full mx-3 p-2 bg-gray-200 rounded-lg gap-2 overflow-x-scroll overflow-y-hidden">
+                        <div id="layer-list" class="flex flex-row w-full h-32 mx-3 my-2 p-2 bg-gray-200 rounded-lg gap-2 overflow-x-scroll overflow-y-hidden">
                         </div>
                     </div>
                 </div>

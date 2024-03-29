@@ -25,6 +25,7 @@ let currentUsedLayer = 0
 let currentWidth = MAX_PAINTBOARD_WIDTH
 let currentHeight = MAX_PAINTBOARD_HEIGHT
 let mouseX = 0, mouseY = 0
+let dragAngle = 0
 let isDrawing = false
 
 let isDragging = false
@@ -37,8 +38,8 @@ let textAlign = "left"
 let canvaMultiplier = 1
 let defaultCanvaMultiplier = 1
 let canvaLeft = 0, canvaTop = 0
-let canvaMovement = {
-    left: false, right: false, up: false, down: false, shift: false
+let canvaKeyState = {
+    left: false, right: false, up: false, down: false, shift: false, ctrl: false
 }
 
 let paintState = 0
@@ -54,8 +55,6 @@ let colorHslRectHold = {
 }
 
 let filename = "art"
-let loadedImg = undefined
-
 let layerDragging = false
 
 const PaintState = {
@@ -219,7 +218,6 @@ function renew(force = false) {
     rename("art")
     layerList = []
     initLayers()
-    loadedImg = undefined
     $("#paintboard").css("background-color", "#ffffff")
     clearPage()
 }
@@ -278,31 +276,38 @@ function render(context, element, opacity = 1) {
     }
 }
 
-function updateLayer() {
+function updateLayerPreview() {
+    const maxWidth = 96, maxHeight = 64
+    const previewMaxLength = Math.max(currentWidth / maxWidth, currentHeight / maxHeight)
     layerList.map((layer, index) => {
         const context = $(".layer-preview").get(index).getContext("2d")
+        $(".layer-preview").get(index).style.width = currentWidth / previewMaxLength + "px"
+        $(".layer-preview").get(index).style.height = currentHeight / previewMaxLength + "px"
         context.canvas.width = currentWidth
         context.canvas.height = currentHeight
+        if (layerList[index].loadedImage) {
+            context.drawImage(layerList[index].loadedImage, 0, 0, currentWidth, currentHeight)
+        }
         layerList[index].memoStack.map((element) => render(context, element, layer.opacity))
     })
 }
 
 function updateLayerHTML() {
     $("#layer-list").empty()
-    // `<div class="layer-box"><canvas class="layer-preview"></canvas><div class="flex flex-row justify-between items-center"><span class="flex w-full h-8 m-2 align-middle text-center text-sm">${layer.name}</span><button class=""></button></div></div>`
     layerList.map((layer, index, array) => {
         const box = $(`<div class="layer-box bg-gray-200" index="${index}"></div>`)
-        const button = $('<button class="flex w-7 h-6 rounded-2xl bg-gray-300 bg-opacity-60 hover:bg-opacity-100 shadow-md text-center justify-center items-center font-semibold text-sm">x</button>')
+        const button = $('<button class="flex w-5 h-4 rounded-2xl bg-gray-300 bg-opacity-60 hover:bg-opacity-100 shadow-md text-center justify-center items-center font-semibold text-sm">x</button>')
         const row = $('<div class="flex flex-row h-16 justify-between items-center p-2"></div>')
         button.click((event) => {
-            console.log("test")
             if (layerList.length > 1) {
-                if (currentUsedLayer === index) {
+                const index = parseInt(event.target.closest(".layer-box").getAttribute("index"))
+                if (currentUsedLayer === index || currentUsedLayer >= layerList.length - 1) {
                     currentUsedLayer = Math.max(0, currentUsedLayer - 1)
                 }
-                array.splice(index, 1)
+                layerList.splice(index, 1)
                 updateLayerHTML()
                 redraw()
+                console.log(currentUsedLayer, index)
             }
         })
         box.click((event) => {
@@ -321,7 +326,7 @@ function updateLayerHTML() {
         $("#layer-list").append(box)
     })
     $(".layer-box").eq(currentUsedLayer).addClass("selected-layer")
-    updateLayer()
+    updateLayerPreview()
 }
 
 function initLayers() {
@@ -334,9 +339,9 @@ function initLayers() {
     $("#layer-input").on("input", (event) => {
         $("#btn-add-layer").prop("disabled", $("#layer-input").val().length == 0)
         if ($("#layer-input").val().length == 0) {
-            $("#btn-add-layer").addClass("bg-gray-100").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
+            $("#btn-add-layer").addClass("bg-gray-50").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
         } else {
-            $("#btn-add-layer").removeClass("bg-gray-100").addClass("hover:bg-gray-300").addClass("bg-gray-200")
+            $("#btn-add-layer").removeClass("bg-gray-50").addClass("hover:bg-gray-300").addClass("bg-gray-200")
         }
     })
     updateLayerHTML()
@@ -365,7 +370,7 @@ function initLayers() {
     $("#layer-opacity-input").on("change", () => {
         layerList[currentUsedLayer].opacity = $("#layer-opacity-input").val() / 100.0
         redraw()
-        updateLayer()
+        updateLayerPreview()
     })
     document.getElementById("layer-input").addEventListener("keydown", (event) => { if (event.key === "Enter" && $("#layer-input").val().length > 0) addNewLayer() })
 }
@@ -374,31 +379,33 @@ function addNewLayer() {
     layerList.push({
         name: $("#layer-input").val(),
         opacity: 1,
+        loadedImage: undefined,
+        transform: DOMMatrix(),
         memoStack: [],
         dropStack: []
     })
     $("#layer-input").val("")
-    $("#btn-add-layer").prop("disabled", true).addClass("bg-gray-100").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
+    $("#btn-add-layer").prop("disabled", true).addClass("bg-gray-50").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
     updateLayerHTML()
 }
 
 function redraw() {
     let context = $("#paintboard")[0].getContext("2d")
     context.globalCompositeOperation = "source-over"
-    if (loadedImg) {
-        context.drawImage(loadedImg, 0, 0, currentWidth, currentHeight)
-    } else {
-        context.clearRect(0, 0, currentWidth, currentHeight)
-    }
+    context.clearRect(0, 0, currentWidth, currentHeight)
     layerList.map((layer) => {
         const newCanva = document.createElement("canvas")
         const newContext = newCanva.getContext("2d")
         newContext.canvas.width = currentWidth
         newContext.canvas.height = currentHeight
+        if (layer.loadedImage) {
+            newContext.drawImage(layer.loadedImage, 0, 0, currentWidth, currentHeight)
+        }
         layer.memoStack.forEach((element) => render(newContext, element, layer.opacity))
+        newContext.setTransform(layer.transform)
         context.drawImage(newCanva, 0, 0)
     })
-    updateLayer()
+    updateLayerPreview()
 }
 
 function resetTextbox() {
@@ -577,50 +584,78 @@ function initPainter() {
                 }]
             }
             context.beginPath()
-            context.lineCap = 'round';
             context.moveTo(mouseX, mouseY)
         }
     })
     $("#paintboard").mousemove((event) => {
         updateMouseCoordinates(event)
         if (isDragging) {
+            dragAngle = Math.acos((mouseX - dragStart.x) / Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2)))
+            dragAngle = ((dragStart.y - mouseY < 0) ? Math.PI * 2 - dragAngle : dragAngle) * 180 / Math.PI
             clearPage()
             redraw()
-            context.lineWidth = (paintState === PaintState.RECT) ? 4 : 2;
+            context.lineWidth = (paintState === PaintState.RECT) ? parseFloat($("#width-input").val()) : 2
             context.strokeStyle = '#9999fa';
             if (paintState !== PaintState.LINE) {
+                const height = mouseY - dragStart.y
                 context.beginPath()
-                context.rect(dragStart.x, dragStart.y, mouseX - dragStart.x, mouseY - dragStart.y)
+                context.rect(dragStart.x, dragStart.y, (canvaKeyState.shift) ? Math.sign(mouseX - dragStart.x) * Math.abs(height) : mouseX - dragStart.x, height)
                 context.stroke()
                 context.closePath()
+                if (canvaKeyState.shift) {
+                    dragEnd = { x: dragStart.x + Math.sign(mouseX - dragStart.x) * Math.abs(height), y: mouseY }
+                }
             }
+            context.lineWidth = parseFloat($("#width-input").val())
             context.beginPath()
             if (paintState === PaintState.CIRCLE) {
+                const height = Math.abs(mouseY - dragStart.y) / 2
                 context.beginPath()
-                context.ellipse(0.5 * (mouseX + dragStart.x), 0.5 * (mouseY + dragStart.y), Math.abs(mouseX - dragStart.x) / 2, Math.abs(mouseY - dragStart.y) / 2, 0, 0, 2 * Math.PI)
+                context.ellipse((canvaKeyState.shift) ? dragStart.x + Math.sign(mouseX - dragStart.x) * Math.abs(mouseY - dragStart.y) / 2 : (mouseX + dragStart.x) / 2, (mouseY + dragStart.y) / 2, (canvaKeyState.shift) ? height : Math.abs(mouseX - dragStart.x) / 2, height, 0, 0, 2 * Math.PI)
                 context.stroke()
             } else if (paintState === PaintState.LINE) {
                 context.beginPath()
                 context.moveTo(dragStart.x, dragStart.y)
-                context.lineTo(mouseX, mouseY)
+                if (canvaKeyState.shift) {
+                    const fixedAngle = parseInt((dragAngle + 22.5) % 360 / 45) * 45 * Math.PI / 180
+                    const length = Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2))
+                    dragEnd = {x: dragStart.x + Math.cos(fixedAngle) * length, y: dragStart.y - Math.sin(fixedAngle) * length}
+                    context.lineTo(dragEnd.x, dragEnd.y)
+                } else {
+                    context.lineTo(mouseX, mouseY)
+                }
                 context.stroke()
             } else if (paintState === PaintState.TRIANGLE) {
                 context.beginPath()
                 context.moveTo(dragStart.x, dragStart.y)
-                context.lineTo(mouseX, dragStart.y)
-                context.lineTo(0.5 * (mouseX + dragStart.x), mouseY)
+                context.lineTo((canvaKeyState.shift) ? dragEnd.x : mouseX, dragStart.y)
+                context.lineTo(0.5 * (((canvaKeyState.shift) ? dragEnd.x : mouseX) + dragStart.x), (canvaKeyState.shift) ? dragEnd.y : mouseY)
                 context.lineTo(dragStart.x, dragStart.y)
+                context.closePath()
                 context.stroke()
             }
             context.fillStyle = "#9999fa"
             context.font = "16px Arial"
-            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}`, mouseX + 5, mouseY)
+            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}` + ": " + dragAngle, mouseX + 5, mouseY)
             context.fillStyle = undefined
-            context.lineWidth = 4;
         } else if (isDrawing) {
             context.lineTo(mouseX, mouseY)
             context.stroke()
             path.points.push({ x: mouseX, y: mouseY })
+        } else {
+            clearPage()
+            redraw()
+            if (canvaKeyState.shift) {
+                context.strokeStyle = '#9999fa';
+                context.lineWidth = 2;
+                context.beginPath()
+                context.moveTo(mouseX, 0)
+                context.lineTo(mouseX, currentHeight)
+                context.stroke()
+                context.moveTo(0, mouseY)
+                context.lineTo(currentWidth, mouseY)
+                context.stroke()
+            }
         }
     })
 
@@ -629,7 +664,9 @@ function initPainter() {
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
-            dragEnd = { x: mouseX, y: mouseY }
+            if (!canvaKeyState.shift) {
+                dragEnd = { x: mouseX, y: mouseY }
+            }
             if (paintState == PaintState.TEXT) {
                 addInputBox(Math.min(clientDragStart.x, clientDragEnd.x), Math.min(clientDragStart.y, clientDragEnd.y), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
                 return
@@ -680,7 +717,7 @@ function initPainter() {
             layerList[currentUsedLayer].dropStack = []
             path = {}
             enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
-            updateLayer()
+            updateLayerPreview()
             redraw()
         }
     })
@@ -769,29 +806,27 @@ function resizeCanva(width, height) {
 }
 
 function uploadProcess(files, filename) {
-    if (!confirm("Are you sure? All of your work will be discarded.")) {
-        return
-    }
-    const context = $("#paintboard")[0].getContext("2d")
     let fr = new FileReader()
     fr.onload = (event) => {
-        renew(true)
         let img = new Image()
         img.src = event.target.result
         img.onload = function () {
             canvaLeft = 0
             canvaTop = 0
             canvaMultiplier = 1
-            setCanvaSize(this.width, this.height)
-            resizeCanva(this.width, this.height)
-            context.drawImage(img, 0, 0, currentWidth, currentHeight)
-            rename(filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, ""))
+            if ((this.width !== currentWidth || this.height !== currentHeight) && confirm("The canva size doesn't fit the size of the image. Resize canva?")) {
+                setCanvaSize(this.width, this.height)
+                resizeCanva(this.width, this.height)
+            }
+            addNewLayer()
+            layerList[layerList.length-1].loadedImage = img
+            layerList[layerList.length-1].name = filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, "")
+            redraw()
+            updateLayerHTML()
         }
         img.onerror = () => {
-            loadedImg = undefined
             alert("Failed to load image :(")
         }
-        loadedImg = img
     }
     fr.readAsDataURL(files[0])
 }
@@ -814,27 +849,34 @@ function initKeyboardShortcut() {
             toolsButtonSelection()
         } else if (["w", "s", "a", "d"].includes(key)) {
             if (key === "w") {
-                canvaMovement.up = false
+                canvaKeyState.up = false
             } else if (key === "a") {
-                canvaMovement.left = false
+                canvaKeyState.left = false
             } else if (key === "s") {
-                canvaMovement.down = false
+                canvaKeyState.down = false
             } else if (key === "d") {
-                canvaMovement.right = false
+                canvaKeyState.right = false
             }
         }
-        canvaMovement.shift = event.shiftKey
+        canvaKeyState.shift = event.shiftKey
+        canvaKeyState.ctrl = event.ctrlKey
     })
     document.addEventListener("keydown", (event) => {
         const key = event.key.toLowerCase()
-        if (key === "w") {
-            canvaMovement.up = true
+        if (event.ctrlKey && (key === "z" || key === "x")) {
+            if (key === "z") {
+                undoCanva()
+            } else {
+                redoCanva()
+            }
+        } else if (key === "w") {
+            canvaKeyState.up = true
         } else if (key === "a") {
-            canvaMovement.left = true
+            canvaKeyState.left = true
         } else if (key === "s") {
-            canvaMovement.down = true
+            canvaKeyState.down = true
         } else if (key === "d") {
-            canvaMovement.right = true
+            canvaKeyState.right = true
         } else if (key === "escape") {
             resetTextbox()
         } else if (["[", "]"].includes(key)) {
@@ -844,14 +886,9 @@ function initKeyboardShortcut() {
             } else {
                 $("#width-input").val(currWidth + 1)
             }
-        } else if (event.ctrlKey && (key === "z" || key === "x")) {
-            if (key === "z") {
-                undoCanva()
-            } else {
-                redoCanva()
-            }
         }
-        canvaMovement.shift = event.shiftKey
+        canvaKeyState.shift = event.shiftKey
+        canvaKeyState.ctrl = event.ctrlKey
     })
     document.addEventListener("wheel", (e) => {
         if ($("#textInputEmbeded").val() !== undefined) return
@@ -868,18 +905,18 @@ function initKeyboardShortcut() {
 
     function movementLoop() {
         if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input")) {
-            setTimeout(movementLoop, 10);
+            setTimeout(movementLoop, 20);
             return
         }
-        if (canvaMovement.up || canvaMovement.down) {
-            canvaTop += ((canvaMovement.up) ? 3 : (canvaMovement.down) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+        if (canvaKeyState.up || canvaKeyState.down) {
+            canvaTop += ((canvaKeyState.up) ? 3 : (canvaKeyState.down) ? -3 : 0) * ((canvaKeyState.shift) ? 20 : 1)
         } else {
-            canvaLeft += ((canvaMovement.left) ? 3 : (canvaMovement.right) ? -3 : 0) * ((canvaMovement.shift) ? 20 : 1)
+            canvaLeft += ((canvaKeyState.left) ? 3 : (canvaKeyState.right) ? -3 : 0) * ((canvaKeyState.shift) ? 20 : 1)
         }
         document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
         document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
 
-        setTimeout(movementLoop, 10);
+        setTimeout(movementLoop, 20);
     }
     movementLoop()
 }
