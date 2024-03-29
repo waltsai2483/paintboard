@@ -44,7 +44,7 @@ let canvaKeyState = {
 
 let paintState = 0
 let filled = false
-let filledColor = "#ffffff"
+let filledColor = "#000000"
 
 let colorSelectorToggle = false
 let colorHsl = {
@@ -149,11 +149,9 @@ function getMouseCoordinates(event) {
 
 function updateMouseCoordinates(event) {
     const pos = getMouseCoordinates(event)
-    if (!(pos.x < 0 || pos.y < 0 || pos.x > currentWidth || pos.y > currentHeight)) {
-        mouseX = pos.x
-        mouseY = pos.y
-        clientDragEnd = { x: event.clientX, y: event.clientY }
-    }
+    mouseX = pos.x
+    mouseY = pos.y
+    clientDragEnd = { x: event.clientX, y: event.clientY }
 }
 
 function enableUiDetect(enable) {
@@ -380,7 +378,7 @@ function addNewLayer() {
         name: $("#layer-input").val(),
         opacity: 1,
         loadedImage: undefined,
-        transform: DOMMatrix(),
+        transform: new DOMMatrix(),
         memoStack: [],
         dropStack: []
     })
@@ -536,7 +534,7 @@ function fillSelectorToggler() {
     if (filled) {
         $("#fill-selector > img").attr("src", "assets/buttons/btn-filled.png")
         $("#fill-selector-menu").append('<span id="filled-color-label" class="align-top w-10">with</span>')
-        $("#fill-selector-menu").append(`<button id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer rounded-lg" style="background-color: black;"></button>`)
+        $("#fill-selector-menu").append(`<button id="filled-color-picker" type="color" class="h-9 w-24 cursor-pointer rounded-lg" style="background-color: ${filledColor};"></button>`)
         $("#fill-bg-changer").css("background-color", filledColor)
         $("#filled-color-picker").click(() => {
             filledColor = $("#color-picker").css("background-color")
@@ -587,7 +585,7 @@ function initPainter() {
             context.moveTo(mouseX, mouseY)
         }
     })
-    $("#paintboard").mousemove((event) => {
+    $("body").mousemove((event) => {
         updateMouseCoordinates(event)
         if (isDragging) {
             dragAngle = Math.acos((mouseX - dragStart.x) / Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2)))
@@ -619,7 +617,7 @@ function initPainter() {
                 if (canvaKeyState.shift) {
                     const fixedAngle = parseInt((dragAngle + 22.5) % 360 / 45) * 45 * Math.PI / 180
                     const length = Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2))
-                    dragEnd = {x: dragStart.x + Math.cos(fixedAngle) * length, y: dragStart.y - Math.sin(fixedAngle) * length}
+                    dragEnd = { x: dragStart.x + Math.cos(fixedAngle) * length, y: dragStart.y - Math.sin(fixedAngle) * length }
                     context.lineTo(dragEnd.x, dragEnd.y)
                 } else {
                     context.lineTo(mouseX, mouseY)
@@ -819,8 +817,8 @@ function uploadProcess(files, filename) {
                 resizeCanva(this.width, this.height)
             }
             addNewLayer()
-            layerList[layerList.length-1].loadedImage = img
-            layerList[layerList.length-1].name = filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, "")
+            layerList[layerList.length - 1].loadedImage = img
+            layerList[layerList.length - 1].name = filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, "")
             redraw()
             updateLayerHTML()
         }
