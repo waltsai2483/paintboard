@@ -57,6 +57,8 @@ let colorHslRectHold = {
 let filename = "art"
 let layerDragging = false
 
+let calibrationLine = false
+
 const PaintState = {
     DRAW: 0,
     ERASE: 1,
@@ -550,6 +552,20 @@ function fillSelectorToggler() {
     }
 }
 
+function showCalLine(context) {
+    if (calibrationLine) {
+        context.strokeStyle = '#9999fa';
+        context.lineWidth = 2;
+        context.beginPath()
+        context.moveTo((canvaKeyState.shift) ? dragEnd.x : mouseX, 0)
+        context.lineTo((canvaKeyState.shift) ? dragEnd.x : mouseX, currentHeight)
+        context.stroke()
+        context.moveTo(0, (canvaKeyState.shift) ? dragEnd.y : mouseY)
+        context.lineTo(currentWidth, (canvaKeyState.shift) ? dragEnd.y : mouseY)
+        context.stroke()
+    }
+}
+
 function initPainter() {
     let context = $("#paintboard")[0].getContext("2d")
     let path
@@ -634,7 +650,7 @@ function initPainter() {
             }
             context.fillStyle = "#9999fa"
             context.font = "16px Arial"
-            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(2)}x${Math.abs(mouseY - dragStart.y).toFixed(2)}` + ": " + dragAngle, mouseX + 5, mouseY)
+            context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(0)}x${Math.abs(mouseY - dragStart.y).toFixed(0)}`, mouseX + 5, mouseY)
             context.fillStyle = undefined
         } else if (isDrawing) {
             context.lineTo(mouseX, mouseY)
@@ -643,18 +659,8 @@ function initPainter() {
         } else {
             clearPage()
             redraw()
-            if (canvaKeyState.shift) {
-                context.strokeStyle = '#9999fa';
-                context.lineWidth = 2;
-                context.beginPath()
-                context.moveTo(mouseX, 0)
-                context.lineTo(mouseX, currentHeight)
-                context.stroke()
-                context.moveTo(0, mouseY)
-                context.lineTo(currentWidth, mouseY)
-                context.stroke()
-            }
         }
+        showCalLine(context)
     })
 
     $("body").mouseup((event) => {
@@ -662,7 +668,7 @@ function initPainter() {
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
-            if (!canvaKeyState.shift) {
+            if (!canvaKeyState.shift || dragEnd === undefined) {
                 dragEnd = { x: mouseX, y: mouseY }
             }
             if (paintState == PaintState.TEXT) {
@@ -841,10 +847,11 @@ function initKeyboardShortcut() {
     document.addEventListener("keyup", (event) => {
         const key = event.key.toLowerCase()
         if (SHORTCUT_MAP[key] !== undefined) {
-            if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input")) return
-            setPaintState(SHORTCUT_MAP[key])
-            updateCursor()
-            toolsButtonSelection()
+            if (!($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input"))) {
+                setPaintState(SHORTCUT_MAP[key])
+                updateCursor()
+                toolsButtonSelection()
+            }
         } else if (["w", "s", "a", "d"].includes(key)) {
             if (key === "w") {
                 canvaKeyState.up = false
@@ -854,6 +861,14 @@ function initKeyboardShortcut() {
                 canvaKeyState.down = false
             } else if (key === "d") {
                 canvaKeyState.right = false
+            }
+        } else if (key === "f") {
+            if (!($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input"))) {
+                fillSelectorToggler()
+            }
+        } else if (key === "c") {
+            if (!($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input"))) {
+                calibrationLine = !calibrationLine
             }
         }
         canvaKeyState.shift = event.shiftKey
@@ -902,7 +917,7 @@ function initKeyboardShortcut() {
     })
 
     function movementLoop() {
-        if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input")) {
+        if ($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("layer-opacity-input")) {
             setTimeout(movementLoop, 20);
             return
         }
