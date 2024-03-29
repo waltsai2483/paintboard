@@ -149,11 +149,9 @@ function getMouseCoordinates(event) {
 
 function updateMouseCoordinates(event) {
     const pos = getMouseCoordinates(event)
-    if (!(pos.x < 0 || pos.y < 0 || pos.x > currentWidth || pos.y > currentHeight)) {
-        mouseX = pos.x
-        mouseY = pos.y
-        clientDragEnd = { x: event.clientX, y: event.clientY }
-    }
+    mouseX = pos.x
+    mouseY = pos.y
+    clientDragEnd = { x: event.clientX, y: event.clientY }
 }
 
 function enableUiDetect(enable) {
@@ -587,7 +585,7 @@ function initPainter() {
             context.moveTo(mouseX, mouseY)
         }
     })
-    $("#paintboard").mousemove((event) => {
+    $("body").mousemove((event) => {
         updateMouseCoordinates(event)
         if (isDragging) {
             dragAngle = Math.acos((mouseX - dragStart.x) / Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2)))
@@ -619,7 +617,7 @@ function initPainter() {
                 if (canvaKeyState.shift) {
                     const fixedAngle = parseInt((dragAngle + 22.5) % 360 / 45) * 45 * Math.PI / 180
                     const length = Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2))
-                    dragEnd = {x: dragStart.x + Math.cos(fixedAngle) * length, y: dragStart.y - Math.sin(fixedAngle) * length}
+                    dragEnd = { x: dragStart.x + Math.cos(fixedAngle) * length, y: dragStart.y - Math.sin(fixedAngle) * length }
                     context.lineTo(dragEnd.x, dragEnd.y)
                 } else {
                     context.lineTo(mouseX, mouseY)
@@ -819,8 +817,8 @@ function uploadProcess(files, filename) {
                 resizeCanva(this.width, this.height)
             }
             addNewLayer()
-            layerList[layerList.length-1].loadedImage = img
-            layerList[layerList.length-1].name = filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, "")
+            layerList[layerList.length - 1].loadedImage = img
+            layerList[layerList.length - 1].name = filename.split(/(\\|\/)/g).pop().replace(/\.[^/.]+$/, "")
             redraw()
             updateLayerHTML()
         }
