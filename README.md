@@ -8,4 +8,4 @@
 * 使用繪圖工具時會將UI隱藏，以避免其影響繪製過程
 
 ## Paint Tools
-![](https://imgur.com/hhGYGYF.mp4)
+![](https://imgur.com/46HZH9u.mp4)
