@@ -60,23 +60,25 @@ let layerDragging = false
 let calibrationLine = false
 
 const PaintState = {
-    DRAW: 0,
-    ERASE: 1,
-    TEXT: 2,
-    CIRCLE: 3,
-    LINE: 4,
-    RECT: 5,
-    TRIANGLE: 6
+    HAND: 0,
+    DRAW: 1,
+    ERASE: 2,
+    TEXT: 3,
+    CIRCLE: 4,
+    LINE: 5,
+    RECT: 6,
+    TRIANGLE: 7
 }
 
 const SHORTCUT_MAP = {
-    "1": PaintState.DRAW,
-    "2": PaintState.ERASE,
-    "3": PaintState.TEXT,
-    "4": PaintState.CIRCLE,
-    "5": PaintState.LINE,
-    "6": PaintState.RECT,
-    "7": PaintState.TRIANGLE
+    "1": PaintState.HAND,
+    "2": PaintState.DRAW,
+    "3": PaintState.ERASE,
+    "4": PaintState.TEXT,
+    "5": PaintState.CIRCLE,
+    "6": PaintState.LINE,
+    "7": PaintState.RECT,
+    "8": PaintState.TRIANGLE
 }
 
 const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice(1).map(n => parseInt(n, 10).toString(16).padStart(2, '0')).join('')}`
@@ -84,6 +86,9 @@ const rgb2hex = (rgb) => `#${rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/).slice
 function updateCursor() {
     const paintboard = document.getElementById("paintboard")
     switch (paintState) {
+        case PaintState.HAND:
+            console.log(canvaKeyState.shift)
+            return paintboard.style.cursor = "url('assets/cursor/cursor-hand.png') 16 16,auto"
         case PaintState.DRAW:
             return paintboard.style.cursor = "url('assets/cursor/cursor-pen.png') 0 0,auto"
         case PaintState.ERASE:
@@ -222,7 +227,7 @@ function renew(force = false) {
     clearPage()
 }
 
-function render(context, element, opacity = 1) {
+function render(context, element, opacity = 1, transform = new DOMMatrix()) {
     context.globalAlpha = opacity
     if (element.type == "text") {
         context.font = element.font
@@ -234,41 +239,49 @@ function render(context, element, opacity = 1) {
         } else if (element.align === "right") {
             offset = element.width
         }
-        context.fillText(element.text, element.x + offset, element.y, element.width)
+        const point = new DOMPoint(element.x + offset, element.y, 0).matrixTransform(transform)
+        context.fillText(element.text, point.x, point.y, element.width)
     } else {
         context.font = undefined
         context.fillStyle = element.filledColor
         context.strokeStyle = element.color
         context.lineWidth = element.filledColor ? element.width * 2 : element.width
         context.globalCompositeOperation = element.eraseMode ? "destination-out" : "source-over"
+
         if (element.type == "line") {
             context.beginPath();
-            context.moveTo(element.points[0].x, element.points[0].y)
+            const point = new DOMPoint(element.points[0].x, element.points[0].y, 0).matrixTransform(transform)
+            context.moveTo(point.x, point.y)
             for (let i = 1; i < element.points.length; i++) {
-                context.lineTo(element.points[i].x, element.points[i].y)
+                const point = new DOMPoint(element.points[i].x, element.points[i].y, 0).matrixTransform(transform)
+                context.lineTo(point.x, point.y)
             }
             context.stroke();
-        } else if (element.type == "circle") {
-            context.beginPath()
-            context.ellipse(0.5 * (element.end.x + element.begin.x), 0.5 * (element.end.y + element.begin.y), Math.abs(element.end.x - element.begin.x) / 2, Math.abs(element.end.y - element.begin.y) / 2, 0, 0, 2 * Math.PI)
-            context.stroke()
-        } else if (element.type == "straight") {
-            context.beginPath()
-            context.moveTo(element.begin.x, element.begin.y)
-            context.lineTo(element.end.x, element.end.y)
-            context.stroke()
-        } else if (element.type == "triangle") {
-            context.beginPath()
-            context.moveTo(element.begin.x, element.begin.y)
-            context.lineTo(element.end.x, element.begin.y)
-            context.lineTo(0.5 * (element.end.x + element.begin.x), element.end.y)
-            context.lineTo(element.begin.x, element.begin.y)
-            context.lineTo(element.end.x, element.begin.y)
-            context.stroke()
-        } else if (element.type == "rect") {
-            context.beginPath()
-            context.rect(element.begin.x, element.begin.y, element.end.x - element.begin.x, element.end.y - element.begin.y)
-            context.stroke()
+        } else {
+            const start = new DOMPoint(element.begin.x, element.begin.y, 0).matrixTransform(transform)
+            const end = new DOMPoint(element.end.x, element.end.y, 0).matrixTransform(transform)
+            if (element.type == "circle") {
+                context.beginPath()
+                context.ellipse(0.5 * (end.x + start.x), 0.5 * (end.y + start.y), Math.abs(end.x - start.x) / 2, Math.abs(end.y - start.y) / 2, 0, 0, 2 * Math.PI)
+                context.stroke()
+            } else if (element.type == "straight") {
+                context.beginPath()
+                context.moveTo(start.x, start.y)
+                context.lineTo(end.x, end.y)
+                context.stroke()
+            } else if (element.type == "triangle") {
+                context.beginPath()
+                context.moveTo(start.x, start.y)
+                context.lineTo(end.x, start.y)
+                context.lineTo(0.5 * (end.x + start.x), end.y)
+                context.lineTo(start.x, start.y)
+                context.lineTo(end.x, start.y)
+                context.stroke()
+            } else if (element.type == "rect") {
+                context.beginPath()
+                context.rect(start.x, start.y, end.x - start.x, end.y - start.y)
+                context.stroke()
+            }
         }
         if (element.filledColor) context.fill()
         context.fillStyle = undefined
@@ -285,10 +298,10 @@ function updateLayerPreview() {
         $(".layer-preview").get(index).style.height = currentHeight / previewMaxLength + "px"
         context.canvas.width = currentWidth
         context.canvas.height = currentHeight
-        if (layerList[index].loadedImage) {
-            context.drawImage(layerList[index].loadedImage, 0, 0, currentWidth, currentHeight)
+        if (layer.loadedImage) {
+            context.drawImage(layer.loadedImage, 0, 0, currentWidth, currentHeight)
         }
-        layerList[index].memoStack.map((element) => render(context, element, layer.opacity))
+        layer.memoStack.map((element) => render(context, element, layer.opacity, layer.transform))
     })
 }
 
@@ -331,8 +344,10 @@ function updateLayerHTML() {
 
 function initLayers() {
     layerList.push({
-        name: "Default",
+        name: "default",
         opacity: 1,
+        loadedImage: undefined,
+        transform: new DOMMatrix(),
         memoStack: [],
         dropStack: []
     })
@@ -399,11 +414,13 @@ function redraw() {
         newContext.canvas.width = currentWidth
         newContext.canvas.height = currentHeight
         if (layer.loadedImage) {
-            newContext.drawImage(layer.loadedImage, 0, 0, currentWidth, currentHeight)
+            const point = new DOMPoint(0, 0, 0).matrixTransform(layer.transform)
+            newContext.drawImage(layer.loadedImage, point.x, point.y, currentWidth, currentHeight)
         }
-        layer.memoStack.forEach((element) => render(newContext, element, layer.opacity))
-        newContext.setTransform(layer.transform)
+        layer.memoStack.forEach((element) => render(newContext, element, layer.opacity, layer.transform))
+        context.save()
         context.drawImage(newCanva, 0, 0)
+        context.restore()
     })
     updateLayerPreview()
 }
@@ -483,11 +500,12 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
         if (event.key === "Enter") {
             const dragStart = { x: $("#textInputEmbeded")[0].getAttribute("startX"), y: $("#textInputEmbeded")[0].getAttribute("startY") }
             const dragEnd = { x: $("#textInputEmbeded")[0].getAttribute("endX"), y: $("#textInputEmbeded")[0].getAttribute("endY") }
+            const point = new DOMPoint(Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)), Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()), 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             const align = $("#textInputEmbeded")[0].getAttribute("align")
             layerList[currentUsedLayer].memoStack.push({
                 type: "text",
-                x: Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
-                y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()),
+                x: point.x,
+                y: point.y,
                 font: `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px ${$("#font-selector-text").text()}`,
                 color: $("#textInputEmbeded").css("color"),
                 text: $("#textInputEmbeded").val(),
@@ -581,11 +599,12 @@ function initPainter() {
         if (colorSelectorToggle) {
             colorSelectorToggler()
         }
-        if (paintState >= PaintState.TEXT) {
+        if (paintState >= PaintState.TEXT || paintState === PaintState.HAND) {
             isDragging = true
             dragStart = { x: mouseX, y: mouseY }
             clientDragStart = { x: event.clientX, y: event.clientY }
         } else {
+            const point = new DOMPoint(mouseX, mouseY, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             isDrawing = true
             path = {
                 type: "line",
@@ -593,8 +612,8 @@ function initPainter() {
                 color: context.strokeStyle,
                 eraseMode: paintState == PaintState.ERASE,
                 points: [{
-                    x: mouseX,
-                    y: mouseY
+                    x: point.x,
+                    y: point.y
                 }]
             }
             context.beginPath()
@@ -603,7 +622,12 @@ function initPainter() {
     })
     $("body").mousemove((event) => {
         updateMouseCoordinates(event)
-        if (isDragging) {
+        if (paintState === PaintState.HAND && isDragging) {
+            layerList[currentUsedLayer].transform = layerList[currentUsedLayer].transform.translateSelf(mouseX - dragStart.x, mouseY - dragStart.y)
+            dragStart.x = mouseX
+            dragStart.y = mouseY
+            redraw()
+        } else if (isDragging) {
             dragAngle = Math.acos((mouseX - dragStart.x) / Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2)))
             dragAngle = ((dragStart.y - mouseY < 0) ? Math.PI * 2 - dragAngle : dragAngle) * 180 / Math.PI
             clearPage()
@@ -653,9 +677,13 @@ function initPainter() {
             context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(0)}x${Math.abs(mouseY - dragStart.y).toFixed(0)}`, mouseX + 5, mouseY)
             context.fillStyle = undefined
         } else if (isDrawing) {
+            const point = new DOMPoint(mouseX, mouseY, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             context.lineTo(mouseX, mouseY)
             context.stroke()
-            path.points.push({ x: mouseX, y: mouseY })
+            path.points.push({
+                x: point.x,
+                y: point.y
+            })
         } else {
             clearPage()
             redraw()
@@ -675,11 +703,15 @@ function initPainter() {
                 addInputBox(Math.min(clientDragStart.x, clientDragEnd.x), Math.min(clientDragStart.y, clientDragEnd.y), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
                 return
             }
+            const start = new DOMPoint(dragStart.x, dragStart.y, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
+            const end = new DOMPoint(dragEnd.x, dragEnd.y, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
+            const transStart = { x: start.x, y: start.y }
+            const transEnd = { x: end.x, y: end.y }
             if (paintState === PaintState.CIRCLE) {
                 layerList[currentUsedLayer].memoStack.push({
                     type: "circle",
-                    begin: dragStart,
-                    end: dragEnd,
+                    begin: transStart,
+                    end: transEnd,
                     color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
@@ -687,16 +719,16 @@ function initPainter() {
             } else if (paintState === PaintState.LINE) {
                 layerList[currentUsedLayer].memoStack.push({
                     type: "straight",
-                    begin: dragStart,
-                    end: dragEnd,
+                    begin: transStart,
+                    end: transEnd,
                     color: $("#color-picker").css("background-color"),
                     width: parseFloat($("#width-input").val())
                 })
             } else if (paintState === PaintState.TRIANGLE) {
                 layerList[currentUsedLayer].memoStack.push({
                     type: "triangle",
-                    begin: dragStart,
-                    end: dragEnd,
+                    begin: transStart,
+                    end: transEnd,
                     color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
@@ -704,8 +736,8 @@ function initPainter() {
             } else if (paintState === PaintState.RECT) {
                 layerList[currentUsedLayer].memoStack.push({
                     type: "rect",
-                    begin: dragStart,
-                    end: dragEnd,
+                    begin: transStart,
+                    end: transEnd,
                     color: $("#color-picker").css("background-color"),
                     filledColor: filled ? filledColor : undefined,
                     width: parseFloat($("#width-input").val())
@@ -928,6 +960,14 @@ function initKeyboardShortcut() {
         }
         document.getElementById("paintboard").style.left = `calc(50% - ${currentWidth / 2 / canvaMultiplier}px + ${canvaLeft / canvaMultiplier}px)`
         document.getElementById("paintboard").style.top = `calc(50% - ${currentHeight / 2 / canvaMultiplier}px + ${canvaTop / canvaMultiplier}px)`
+
+        if (paintState === PaintState.HAND) {
+            if (isDragging) {
+                paintboard.style.cursor = "url('assets/cursor/cursor-hand-drag.png') 16 16,auto"
+            } else {
+                paintboard.style.cursor = "url('assets/cursor/cursor-hand.png') 16 16,auto"
+            }
+        }
 
         setTimeout(movementLoop, 20);
     }
