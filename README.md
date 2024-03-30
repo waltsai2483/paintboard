@@ -27,13 +27,11 @@
 ### 
 <br>
 <img alt="Preview" src="https://imgur.com/38AeGNH.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
-<br>
 
 ### 繪筆/橡皮擦工具
 * 按下**工具列**上的 繪筆按鈕 或 <kbd>數字鍵1</kbd> 以切換為 繪筆模式
 * 按下**工具列**上的 橡皮擦按鈕 或 <kbd>數字鍵2</kbd> 以切換為 擦除模式
 
-<br>
 <img alt="Preview" src="https://imgur.com/sH2Wp9Y.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 ### 文字工具
