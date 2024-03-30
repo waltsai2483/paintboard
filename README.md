@@ -15,27 +15,41 @@
 ## Paint Tools
 
 調整**屬性列**的各項數值以更改繪圖屬性，分為字型、顏色、圖形三項主區塊
+
+<img alt="Preview" src="https://imgur.com/S11JyTC.png" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+
 * **字型區:** 調整文字模式下的字型與文字對齊方向
+    * 文字對齊分為靠左、置中和靠右，會更改文字在框選範圍的位置
 * **顏色區:** 調整畫筆/邊框/文字顏色
     * 按下 方形色塊按鈕 後將彈出視窗，並以HSL標示方法選色
     * 選色後會顯示近期使用的顏色以方便使用者選擇
 * **圖形區:** 調整畫筆/邊框寬度與圖形內部填色
-    * <kbd>[</kbd> <kbd>]</kbd> 鍵分別能放大/縮小畫筆/邊框的寬度
+    * <kbd>[</kbd> 鍵能放大畫筆/邊框的寬度， <kbd>]</kbd> 鍵則可以縮小
     * 按下填色區的 圓形按鈕 或按鍵 <kbd>F</kbd> 以開啟/關閉填色
     * 點擊右側的矩形可以將選擇的填色改成**與顏色區的選色相同的顏色**
 * 按下 <kbd>C</kbd> 鍵能夠開啟/關閉滑鼠的十字對準線以供參考
 ### 
+
 <br>
+<img alt="Preview" src="https://imgur.com/OfWNev7.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
+<br>
+
+### 抓取工具
+* 按下**工具列**上的 手掌按鈕 或 <kbd>數字鍵1</kbd> 以切換為 抓取模式
+    * 拖動以調整選擇圖層的位置
+
 <img alt="Preview" src="https://imgur.com/38AeGNH.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
+<br>
 
 ### 繪筆/橡皮擦工具
-* 按下**工具列**上的 繪筆按鈕 或 <kbd>數字鍵1</kbd> 以切換為 繪筆模式
-* 按下**工具列**上的 橡皮擦按鈕 或 <kbd>數字鍵2</kbd> 以切換為 擦除模式
+* 按下**工具列**上的 繪筆按鈕 或 <kbd>數字鍵2</kbd> 以切換為 繪筆模式
+* 按下**工具列**上的 橡皮擦按鈕 或 <kbd>數字鍵3</kbd> 以切換為 擦除模式
 
+<br>
 <img alt="Preview" src="https://imgur.com/sH2Wp9Y.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 ### 文字工具
-* 按下**工具列**上的 文字按鈕 或 <kbd>數字鍵3</kbd> 以切換為 文字模式
+* 按下**工具列**上的 文字按鈕 或 <kbd>數字鍵4</kbd> 以切換為 文字模式
 * 左鍵拖動可框選一塊文字輸入欄，輸入完成後按 <kbd>Enter</kbd> 會繪製到畫板上
     * 按下 <kbd>Shift</kbd> 以改為正方形區域
     * 字體支援: 在**字型區**中的字型選單中選擇字體
@@ -52,33 +66,38 @@
 
 <br><img alt="Preview" src="https://imgur.com/x2tXQGy.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
 
-* **圓形模式**: 按下 圓形按鈕 或 <kbd>數字鍵4</kbd> 以繪製橢圓形
+* **圓形模式**: 按下 圓形按鈕 或 <kbd>數字鍵5</kbd> 以繪製橢圓形
   * 按下 <kbd>Shift</kbd> 以改為繪製正圓形
 
 <br><img alt="Preview" src="https://imgur.com/3yMl9RV.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
 
-* **直線模式**: 按下 直線按鈕 或 <kbd>數字鍵5</kbd> 以繪製直線
+* **直線模式**: 按下 直線按鈕 或 <kbd>數字鍵6</kbd> 以繪製直線
   * 按下 <kbd>Shift</kbd> 以改為繪製水平/垂直線或45度斜線 (根據滑鼠位置調整角度) 
 
 <br><img alt="Preview" src="https://imgur.com/z40GqPX.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
 
-* **方形模式**: 按下 方形按鈕 或 <kbd>數字鍵6</kbd> 以繪製矩形
+* **方形模式**: 按下 方形按鈕 或 <kbd>數字鍵7</kbd> 以繪製矩形
   * 按下 <kbd>Shift</kbd> 以改為繪製正方形
 
 <br><img alt="Preview" src="https://imgur.com/fKqSeXs.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
 
-* **三角模式**: 按下 三角按鈕 或 <kbd>數字鍵7</kbd> 以繪製三角形
+* **三角模式**: 按下 三角按鈕 或 <kbd>數字鍵8</kbd> 以繪製三角形
   * 按下 <kbd>Shift</kbd> 以改為繪製長寬相等的三角形
 
 ## Layer
-<img alt="Preview" src="https://imgur.com/FfGRsns.png" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+<img alt="Preview" src="https://imgur.com/yNJzKZF.png" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
 
 **圖層欄**左側的選單支援與圖層相關的功能，透過鍵入16個字元以內的圖層名稱並按下 Add 按鈕或 <kbd>Enter</kbd> 可以新增一個圖層。圖層具有以下屬性: 
 * 獨立畫板與儲存區互不干涉，且能獨立撤銷/重做
-* 拖動圖層方塊以調整圖層間的重疊順序，按下方塊右下方的 × 按鍵已刪除圖層
+* 拖動圖層方塊以調整圖層間的重疊順序(覆蓋左側的圖層，並被右側的圖層覆蓋)
+* 按下方塊右下方的 × 按鍵已刪除圖層
 * 可控制各圖層的透明度
 
 ## Control
+
+<img alt="Preview" src="https://imgur.com/wyDx3RY.png" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+
+**控制欄**支援許多控制畫板的功能，另一些功能可以透過快捷鍵來完成
 
 ### 撤銷/重做
 * 按下**控制欄**左側的 左指按鈕 或使用快捷鍵 <kbd>Ctrl+Z</kbd> 能將選定圖層回退一個階段
