@@ -12,8 +12,8 @@ const SUPPORTED_FONT = [
 const TEXT_ALIGN = [
     "left", "center", "right"
 ]
-const MAX_PAINTBOARD_WIDTH = 1080
-const MAX_PAINTBOARD_HEIGHT = 720
+const DEFAULT_PAINTBOARD_WIDTH = 1080
+const DEFAULT_PAINTBOARD_HEIGHT = 720
 
 let recentColors = []
 let memoStack = []
@@ -22,8 +22,8 @@ let dropStack = []
 let layerList = []
 let currentUsedLayer = 0
 
-let currentWidth = MAX_PAINTBOARD_WIDTH
-let currentHeight = MAX_PAINTBOARD_HEIGHT
+let currentWidth = DEFAULT_PAINTBOARD_WIDTH
+let currentHeight = DEFAULT_PAINTBOARD_HEIGHT
 let mouseX = 0, mouseY = 0
 let dragAngle = 0
 let isDrawing = false
@@ -216,8 +216,17 @@ function clearPage() {
 function renew(force = false) {
     if (!force && !confirm("Are you sure? All of your work will be discarded."))
         return
-    setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
-    resizeCanva(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
+    let width = prompt("Input the width of the canva: ", "default")
+    let height = prompt("Input the height of the canva: ", "default")
+    try {
+        width = width === "default" ? DEFAULT_PAINTBOARD_WIDTH : parseInt(width)
+        height = height === "default" ? DEFAULT_PAINTBOARD_HEIGHT : parseInt(height)
+    } catch (err) {
+        alert("Not integer!")
+        return
+    }
+    setCanvaSize(width, height)
+    resizeCanva(width, height)
     enableUndoRedo(false, false)
     resetTextbox()
     rename("art")
@@ -832,8 +841,8 @@ function downloadURI(uri) {
 }
 
 function resizeCanva(width, height) {
-    const wMul = width / MAX_PAINTBOARD_WIDTH
-    const hMul = height / MAX_PAINTBOARD_HEIGHT
+    const wMul = width / DEFAULT_PAINTBOARD_WIDTH
+    const hMul = height / DEFAULT_PAINTBOARD_HEIGHT
     canvaMultiplier = Math.max(wMul, hMul)
     defaultCanvaMultiplier = canvaMultiplier
     $("#paintboard").css("width", width / defaultCanvaMultiplier).css("height", height / defaultCanvaMultiplier)
