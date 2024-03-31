@@ -217,7 +217,13 @@ function renew(force = false) {
     if (!force && !confirm("Are you sure? All of your work will be discarded."))
         return
     let width = prompt("Input the width of the canva: ", "default")
+    if (width == "") {
+        return
+    }
     let height = prompt("Input the height of the canva: ", "default")
+    if (height == "") {
+        return
+    }
     try {
         width = width === "default" ? DEFAULT_PAINTBOARD_WIDTH : parseInt(width)
         height = height === "default" ? DEFAULT_PAINTBOARD_HEIGHT : parseInt(height)
@@ -705,6 +711,9 @@ function initPainter() {
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
+            if (paintState === PaintState.HAND) {
+                return
+            }
             if (!canvaKeyState.shift || dragEnd === undefined) {
                 dragEnd = { x: mouseX, y: mouseY }
             }
