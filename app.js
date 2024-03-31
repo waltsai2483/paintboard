@@ -216,6 +216,9 @@ function clearPage() {
 function renew(force = false) {
     if (!force && !confirm("Are you sure? All of your work will be discarded."))
         return
+    
+    const width = prompt("Input the")
+    const height = prompt("Are you sure? All of your work will be discarded.")
     setCanvaSize(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     resizeCanva(MAX_PAINTBOARD_WIDTH, MAX_PAINTBOARD_HEIGHT)
     enableUndoRedo(false, false)
@@ -227,7 +230,7 @@ function renew(force = false) {
     clearPage()
 }
 
-function render(context, element, opacity = 1, transform = new DOMMatrix()) {
+function render(context, element, opacity = 1) {
     context.globalAlpha = opacity
     if (element.type == "text") {
         context.font = element.font
@@ -239,8 +242,7 @@ function render(context, element, opacity = 1, transform = new DOMMatrix()) {
         } else if (element.align === "right") {
             offset = element.width
         }
-        const point = new DOMPoint(element.x + offset, element.y, 0).matrixTransform(transform)
-        context.fillText(element.text, point.x, point.y, element.width)
+        context.fillText(element.text, element.x + offset, element.y, element.width)
     } else {
         context.font = undefined
         context.fillStyle = element.filledColor
@@ -250,36 +252,32 @@ function render(context, element, opacity = 1, transform = new DOMMatrix()) {
 
         if (element.type == "line") {
             context.beginPath();
-            const point = new DOMPoint(element.points[0].x, element.points[0].y, 0).matrixTransform(transform)
-            context.moveTo(point.x, point.y)
+            context.moveTo(element.points[0].x, element.points[0].y)
             for (let i = 1; i < element.points.length; i++) {
-                const point = new DOMPoint(element.points[i].x, element.points[i].y, 0).matrixTransform(transform)
-                context.lineTo(point.x, point.y)
+                context.lineTo(element.points[i].x, element.points[i].y)
             }
             context.stroke();
         } else {
-            const start = new DOMPoint(element.begin.x, element.begin.y, 0).matrixTransform(transform)
-            const end = new DOMPoint(element.end.x, element.end.y, 0).matrixTransform(transform)
             if (element.type == "circle") {
                 context.beginPath()
-                context.ellipse(0.5 * (end.x + start.x), 0.5 * (end.y + start.y), Math.abs(end.x - start.x) / 2, Math.abs(end.y - start.y) / 2, 0, 0, 2 * Math.PI)
+                context.ellipse(0.5 * (element.end.x + element.begin.x), 0.5 * (element.end.y + element.begin.y), Math.abs(element.end.x - element.begin.x) / 2, Math.abs(element.end.y - element.begin.y) / 2, 0, 0, 2 * Math.PI)
                 context.stroke()
             } else if (element.type == "straight") {
                 context.beginPath()
-                context.moveTo(start.x, start.y)
-                context.lineTo(end.x, end.y)
+                context.moveTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.end.y)
                 context.stroke()
             } else if (element.type == "triangle") {
                 context.beginPath()
-                context.moveTo(start.x, start.y)
-                context.lineTo(end.x, start.y)
-                context.lineTo(0.5 * (end.x + start.x), end.y)
-                context.lineTo(start.x, start.y)
-                context.lineTo(end.x, start.y)
+                context.moveTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.begin.y)
+                context.lineTo(0.5 * (element.end.x + element.begin.x), element.end.y)
+                context.lineTo(element.begin.x, element.begin.y)
+                context.lineTo(element.end.x, element.begin.y)
                 context.stroke()
             } else if (element.type == "rect") {
                 context.beginPath()
-                context.rect(start.x, start.y, end.x - start.x, end.y - start.y)
+                context.rect(element.begin.x, element.begin.y, element.end.x - element.begin.x, element.end.y - element.begin.y)
                 context.stroke()
             }
         }
@@ -301,7 +299,7 @@ function updateLayerPreview() {
         if (layer.loadedImage) {
             context.drawImage(layer.loadedImage, 0, 0, currentWidth, currentHeight)
         }
-        layer.memoStack.map((element) => render(context, element, layer.opacity, layer.transform))
+        layer.memoStack.map((element) => render(context, element, layer.opacity))
     })
 }
 
@@ -342,15 +340,20 @@ function updateLayerHTML() {
     updateLayerPreview()
 }
 
-function initLayers() {
+function pushLayer(name) {
     layerList.push({
-        name: "default",
+        name: name,
         opacity: 1,
         loadedImage: undefined,
-        transform: new DOMMatrix(),
+        position: {x: 0, y: 0},
+        rotation: 0,
         memoStack: [],
         dropStack: []
     })
+}
+
+function initLayers() {
+    pushLayer("default")
     $("#layer-input").on("input", (event) => {
         $("#btn-add-layer").prop("disabled", $("#layer-input").val().length == 0)
         if ($("#layer-input").val().length == 0) {
@@ -391,14 +394,7 @@ function initLayers() {
 }
 
 function addNewLayer() {
-    layerList.push({
-        name: $("#layer-input").val(),
-        opacity: 1,
-        loadedImage: undefined,
-        transform: new DOMMatrix(),
-        memoStack: [],
-        dropStack: []
-    })
+    pushLayer($("#layer-input").val())
     $("#layer-input").val("")
     $("#btn-add-layer").prop("disabled", true).addClass("bg-gray-50").removeClass("hover:bg-gray-300").removeClass("bg-gray-200")
     updateLayerHTML()
@@ -414,10 +410,9 @@ function redraw() {
         newContext.canvas.width = currentWidth
         newContext.canvas.height = currentHeight
         if (layer.loadedImage) {
-            const point = new DOMPoint(0, 0, 0).matrixTransform(layer.transform)
-            newContext.drawImage(layer.loadedImage, point.x, point.y, currentWidth, currentHeight)
+            newContext.drawImage(layer.loadedImage, 0, 0, currentWidth, currentHeight)
         }
-        layer.memoStack.forEach((element) => render(newContext, element, layer.opacity, layer.transform))
+        layer.memoStack.forEach((element) => render(newContext, element, layer.opacity))
         context.save()
         context.drawImage(newCanva, 0, 0)
         context.restore()
@@ -500,12 +495,11 @@ function addInputBox(x, y, w, h, dragStart, dragEnd) {
         if (event.key === "Enter") {
             const dragStart = { x: $("#textInputEmbeded")[0].getAttribute("startX"), y: $("#textInputEmbeded")[0].getAttribute("startY") }
             const dragEnd = { x: $("#textInputEmbeded")[0].getAttribute("endX"), y: $("#textInputEmbeded")[0].getAttribute("endY") }
-            const point = new DOMPoint(Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)), Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()), 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             const align = $("#textInputEmbeded")[0].getAttribute("align")
             layerList[currentUsedLayer].memoStack.push({
                 type: "text",
-                x: point.x,
-                y: point.y,
+                x:Math.min(parseFloat(dragStart.x), parseFloat(dragEnd.x)),
+                y: Math.min(parseFloat(dragStart.y), parseFloat(dragEnd.y)) + Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)) * getFontOffset($("#font-selector-text").text()),
                 font: `${Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y))}px ${$("#font-selector-text").text()}`,
                 color: $("#textInputEmbeded").css("color"),
                 text: $("#textInputEmbeded").val(),
@@ -604,7 +598,6 @@ function initPainter() {
             dragStart = { x: mouseX, y: mouseY }
             clientDragStart = { x: event.clientX, y: event.clientY }
         } else {
-            const point = new DOMPoint(mouseX, mouseY, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             isDrawing = true
             path = {
                 type: "line",
@@ -612,8 +605,8 @@ function initPainter() {
                 color: context.strokeStyle,
                 eraseMode: paintState == PaintState.ERASE,
                 points: [{
-                    x: point.x,
-                    y: point.y
+                    x: mouseX,
+                    y: mouseY
                 }]
             }
             context.beginPath()
@@ -623,7 +616,8 @@ function initPainter() {
     $("body").mousemove((event) => {
         updateMouseCoordinates(event)
         if (paintState === PaintState.HAND && isDragging) {
-            layerList[currentUsedLayer].transform = layerList[currentUsedLayer].transform.translateSelf(mouseX - dragStart.x, mouseY - dragStart.y)
+            layerList[currentUsedLayer].position.x += mouseX - dragStart.x
+            layerList[currentUsedLayer].position.y += mouseY - dragStart.y
             dragStart.x = mouseX
             dragStart.y = mouseY
             redraw()
@@ -677,12 +671,11 @@ function initPainter() {
             context.fillText(`${Math.abs(mouseX - dragStart.x).toFixed(0)}x${Math.abs(mouseY - dragStart.y).toFixed(0)}`, mouseX + 5, mouseY)
             context.fillStyle = undefined
         } else if (isDrawing) {
-            const point = new DOMPoint(mouseX, mouseY, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
             context.lineTo(mouseX, mouseY)
             context.stroke()
             path.points.push({
-                x: point.x,
-                y: point.y
+                x: mouseX,
+                y: mouseY
             })
         } else {
             clearPage()
@@ -696,54 +689,53 @@ function initPainter() {
         enableUiDetect(true)
         if (isDragging) {
             isDragging = false
-            if (!canvaKeyState.shift || dragEnd === undefined) {
-                dragEnd = { x: mouseX, y: mouseY }
-            }
             if (paintState == PaintState.TEXT) {
                 addInputBox(Math.min(clientDragStart.x, clientDragEnd.x), Math.min(clientDragStart.y, clientDragEnd.y), Math.abs(parseFloat(dragEnd.x) - parseFloat(dragStart.x)), Math.abs(parseFloat(dragEnd.y) - parseFloat(dragStart.y)), dragStart, dragEnd)
                 return
             }
-            const start = new DOMPoint(dragStart.x, dragStart.y, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
-            const end = new DOMPoint(dragEnd.x, dragEnd.y, 0).matrixTransform(layerList[currentUsedLayer].transform.inverse())
-            const transStart = { x: start.x, y: start.y }
-            const transEnd = { x: end.x, y: end.y }
-            if (paintState === PaintState.CIRCLE) {
-                layerList[currentUsedLayer].memoStack.push({
-                    type: "circle",
-                    begin: transStart,
-                    end: transEnd,
-                    color: $("#color-picker").css("background-color"),
-                    filledColor: filled ? filledColor : undefined,
-                    width: parseFloat($("#width-input").val())
-                })
-            } else if (paintState === PaintState.LINE) {
-                layerList[currentUsedLayer].memoStack.push({
-                    type: "straight",
-                    begin: transStart,
-                    end: transEnd,
-                    color: $("#color-picker").css("background-color"),
-                    width: parseFloat($("#width-input").val())
-                })
-            } else if (paintState === PaintState.TRIANGLE) {
-                layerList[currentUsedLayer].memoStack.push({
-                    type: "triangle",
-                    begin: transStart,
-                    end: transEnd,
-                    color: $("#color-picker").css("background-color"),
-                    filledColor: filled ? filledColor : undefined,
-                    width: parseFloat($("#width-input").val())
-                })
-            } else if (paintState === PaintState.RECT) {
-                layerList[currentUsedLayer].memoStack.push({
-                    type: "rect",
-                    begin: transStart,
-                    end: transEnd,
-                    color: $("#color-picker").css("background-color"),
-                    filledColor: filled ? filledColor : undefined,
-                    width: parseFloat($("#width-input").val())
-                })
+            if (paintState === PaintState.HAND) {
+            } else {
+                if (!canvaKeyState.shift || dragEnd === undefined) {
+                    dragEnd = { x: mouseX, y: mouseY }
+                }
+                if (paintState === PaintState.CIRCLE) {
+                    layerList[currentUsedLayer].memoStack.push({
+                        type: "circle",
+                        begin: dragStart,
+                        end: dragEnd,
+                        color: $("#color-picker").css("background-color"),
+                        filledColor: filled ? filledColor : undefined,
+                        width: parseFloat($("#width-input").val())
+                    })
+                } else if (paintState === PaintState.LINE) {
+                    layerList[currentUsedLayer].memoStack.push({
+                        type: "straight",
+                        begin: dragStart,
+                        end: dragEnd,
+                        color: $("#color-picker").css("background-color"),
+                        width: parseFloat($("#width-input").val())
+                    })
+                } else if (paintState === PaintState.TRIANGLE) {
+                    layerList[currentUsedLayer].memoStack.push({
+                        type: "triangle",
+                        begin: dragStart,
+                        end: dragEnd,
+                        color: $("#color-picker").css("background-color"),
+                        filledColor: filled ? filledColor : undefined,
+                        width: parseFloat($("#width-input").val())
+                    })
+                } else if (paintState === PaintState.RECT) {
+                    layerList[currentUsedLayer].memoStack.push({
+                        type: "rect",
+                        begin: dragStart,
+                        end: dragEnd,
+                        color: $("#color-picker").css("background-color"),
+                        filledColor: filled ? filledColor : undefined,
+                        width: parseFloat($("#width-input").val())
+                    })
+                }   
+                layerList[currentUsedLayer].dropStack = []
             }
-            layerList[currentUsedLayer].dropStack = []
             clearPage()
             redraw()
             enableUndoRedo(layerList[currentUsedLayer].memoStack.length != 0, layerList[currentUsedLayer].dropStack.length != 0)
