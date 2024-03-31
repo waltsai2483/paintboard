@@ -426,6 +426,7 @@ function redraw() {
         const newContext = newCanva.getContext("2d")
         newContext.canvas.width = currentWidth
         newContext.canvas.height = currentHeight
+        newContext.globalAlpha = layer.opacity
         if (layer.loadedImage) {
             const point = new DOMPoint(0, 0, 0).matrixTransform(layer.transform)
             newContext.drawImage(layer.loadedImage, point.x, point.y, currentWidth, currentHeight)
