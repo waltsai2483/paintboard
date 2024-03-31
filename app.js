@@ -57,8 +57,6 @@ let colorHslRectHold = {
 let filename = "art"
 let layerDragging = false
 
-let calibrationLine = false
-
 const PaintState = {
     HAND: 0,
     DRAW: 1,
@@ -585,20 +583,6 @@ function fillSelectorToggler() {
     }
 }
 
-function showCalLine(context) {
-    if (calibrationLine) {
-        context.strokeStyle = '#9999fa';
-        context.lineWidth = 2;
-        context.beginPath()
-        context.moveTo((canvaKeyState.shift) ? dragEnd.x : mouseX, 0)
-        context.lineTo((canvaKeyState.shift) ? dragEnd.x : mouseX, currentHeight)
-        context.stroke()
-        context.moveTo(0, (canvaKeyState.shift) ? dragEnd.y : mouseY)
-        context.lineTo(currentWidth, (canvaKeyState.shift) ? dragEnd.y : mouseY)
-        context.stroke()
-    }
-}
-
 function initPainter() {
     let context = $("#paintboard")[0].getContext("2d")
     let path
@@ -645,7 +629,6 @@ function initPainter() {
         } else if (isDragging) {
             dragAngle = Math.acos((mouseX - dragStart.x) / Math.sqrt(Math.pow(mouseY - dragStart.y, 2) + Math.pow(mouseX - dragStart.x, 2)))
             dragAngle = ((dragStart.y - mouseY < 0) ? Math.PI * 2 - dragAngle : dragAngle) * 180 / Math.PI
-            clearPage()
             redraw()
             context.lineWidth = (paintState === PaintState.RECT) ? parseFloat($("#width-input").val()) : 2
             context.strokeStyle = '#9999fa';
@@ -700,10 +683,8 @@ function initPainter() {
                 y: point.y
             })
         } else {
-            clearPage()
             redraw()
         }
-        showCalLine(context)
     })
 
     $("body").mouseup((event) => {
@@ -915,10 +896,6 @@ function initKeyboardShortcut() {
         } else if (key === "f") {
             if (!($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input"))) {
                 fillSelectorToggler()
-            }
-        } else if (key === "c") {
-            if (!($("#textInputEmbeded").val() !== undefined || document.activeElement === document.getElementById("layer-input") || document.activeElement === document.getElementById("width-input") || document.activeElement === document.getElementById("layer-opacity-input"))) {
-                calibrationLine = !calibrationLine
             }
         }
         canvaKeyState.shift = event.shiftKey
