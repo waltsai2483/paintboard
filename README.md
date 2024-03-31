@@ -32,14 +32,12 @@
 
 <br>
 <img alt="Preview" src="https://imgur.com/OfWNev7.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
-<br>
 
 ### 抓取工具
 * 按下**工具列**上的 手掌按鈕 或 <kbd>數字鍵1</kbd> 以切換為 抓取模式
     * 拖動以調整選擇圖層的位置
 
 <img alt="Preview" src="https://imgur.com/38AeGNH.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
-<br>
 
 ### 繪筆/橡皮擦工具
 * 按下**工具列**上的 繪筆按鈕 或 <kbd>數字鍵2</kbd> 以切換為 繪筆模式
@@ -64,22 +62,22 @@
 * 左鍵拖動時可以調整圖形長度/寬度
 * 顯示對應圖形的輪廓與方框供使用者對準
 
-<br><img alt="Preview" src="https://imgur.com/x2tXQGy.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+<br><img alt="Preview" src="https://imgur.com/x2tXQGy.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 * **圓形模式**: 按下 圓形按鈕 或 <kbd>數字鍵5</kbd> 以繪製橢圓形
   * 按下 <kbd>Shift</kbd> 以改為繪製正圓形
 
-<br><img alt="Preview" src="https://imgur.com/3yMl9RV.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+<br><img alt="Preview" src="https://imgur.com/3yMl9RV.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 * **直線模式**: 按下 直線按鈕 或 <kbd>數字鍵6</kbd> 以繪製直線
   * 按下 <kbd>Shift</kbd> 以改為繪製水平/垂直線或45度斜線 (根據滑鼠位置調整角度) 
 
-<br><img alt="Preview" src="https://imgur.com/z40GqPX.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+<br><img alt="Preview" src="https://imgur.com/z40GqPX.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 * **方形模式**: 按下 方形按鈕 或 <kbd>數字鍵7</kbd> 以繪製矩形
   * 按下 <kbd>Shift</kbd> 以改為繪製正方形
 
-<br><img alt="Preview" src="https://imgur.com/fKqSeXs.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;"><br>
+<br><img alt="Preview" src="https://imgur.com/fKqSeXs.gif" style="width: 100%; box-shadow: 0px 0px 5px 0.25px #dddddd;">
 
 * **三角模式**: 按下 三角按鈕 或 <kbd>數字鍵8</kbd> 以繪製三角形
   * 按下 <kbd>Shift</kbd> 以改為繪製長寬相等的三角形
@@ -90,7 +88,7 @@
 **圖層欄**左側的選單支援與圖層相關的功能，透過鍵入16個字元以內的圖層名稱並按下 Add 按鈕或 <kbd>Enter</kbd> 可以新增一個圖層。圖層具有以下屬性: 
 * 獨立畫板與儲存區互不干涉，且能獨立撤銷/重做
 * 拖動圖層方塊以調整圖層間的重疊順序(覆蓋左側的圖層，並被右側的圖層覆蓋)
-* 按下方塊右下方的 × 按鍵已刪除圖層
+* 按下方塊右下方的 × 按鍵以刪除圖層
 * 可控制各圖層的透明度
 
 ## Control
